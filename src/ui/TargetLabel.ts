@@ -11,38 +11,30 @@ const RARITY_CSS: Record<Rarity, string> = {
   mythic: "var(--rarity-mythic)",
 };
 
-/** World + stage + rarity + current target name, centered near the top. */
+/** Rarity + current target name, centered above the chest. */
 export class TargetLabel {
-  private readonly worldEl = el("div", "target-rarity");
-  private readonly stageEl = el("div", "target-rarity");
+  private readonly root = el("div", "target-label");
   private readonly rarityEl = el("div", "target-rarity");
   private readonly nameEl = el("div", "target-name");
 
   constructor(parent: HTMLElement, core: GameCore, bus: EventBus) {
-    const root = el("div", "target-label");
-    this.worldEl.style.color = "rgba(255,255,255,0.65)";
-    this.stageEl.style.color = "rgba(255,255,255,0.8)";
-    root.append(this.worldEl, this.stageEl, this.rarityEl, this.nameEl);
-    parent.append(root);
+    this.root.append(this.rarityEl, this.nameEl);
+    parent.append(this.root);
 
     const snap = core.getSnapshot();
-    this.setWorld(snap.worldName);
-    this.setStage(snap.stage);
     if (snap.target) this.setTarget(snap.target.rarity, snap.target.name);
 
     bus.on("targetSpawned", ({ target }) => {
       this.setTarget(target.rarity, target.name);
+      this.setVisible(true);
     });
-    bus.on("stageChanged", ({ stage }) => this.setStage(stage));
-    bus.on("worldChanged", ({ name }) => this.setWorld(name));
+    // Hide the rarity/title while the chest is broken + respawning so the
+    // stale label doesn't sit over the loot burst. It returns on the next spawn.
+    bus.on("targetBroken", () => this.setVisible(false));
   }
 
-  private setWorld(name: string): void {
-    this.worldEl.textContent = name;
-  }
-
-  private setStage(stage: number): void {
-    this.stageEl.textContent = `Stage ${stage}`;
+  private setVisible(visible: boolean): void {
+    this.root.style.visibility = visible ? "visible" : "hidden";
   }
 
   private setTarget(rarity: Rarity, name: string): void {

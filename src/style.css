@@ -129,10 +129,33 @@ body {
   opacity: 0.95;
 }
 
+/* ---- Location row (under rebirth HUD) ---- */
+.hud-location {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--frame-unit) * 1);
+  align-self: flex-start;
+  margin-top: calc(var(--frame-unit) * 0.5);
+}
+
+.hud-location-pin {
+  font-size: calc(var(--frame-unit) * 4.5);
+  line-height: 1;
+  filter: drop-shadow(0 calc(var(--frame-unit) * 0.3) 0 rgba(0, 0, 0, 0.4));
+}
+
+.hud-location-name {
+  font-weight: 800;
+  font-size: calc(var(--frame-unit) * 4.2);
+  color: rgba(255, 255, 255, 0.92);
+  letter-spacing: calc(var(--frame-unit) * 0.2);
+  text-shadow: 0 calc(var(--frame-unit) * 0.3) 0 rgba(0, 0, 0, 0.45);
+}
+
 /* ---- Target label ---- */
 .target-label {
   position: absolute;
-  top: calc(var(--frame-unit) * 18);
+  top: calc(var(--frame-unit) * 28);
   left: 0;
   right: 0;
   text-align: center;
@@ -140,20 +163,20 @@ body {
 }
 
 .target-rarity {
-  font-size: calc(var(--frame-unit) * 6);
+  font-size: calc(var(--frame-unit) * 4.5);
   font-weight: 900;
   letter-spacing: calc(var(--frame-unit) * 0.4);
   text-transform: uppercase;
-  -webkit-text-stroke: calc(var(--frame-unit) * 0.4) rgba(0, 0, 0, 0.5);
+  -webkit-text-stroke: calc(var(--frame-unit) * 0.3) rgba(0, 0, 0, 0.5);
 }
 
 .target-name {
-  font-size: calc(var(--frame-unit) * 9);
+  font-size: calc(var(--frame-unit) * 6.5);
   font-weight: 900;
   color: #fff;
   text-transform: uppercase;
   letter-spacing: calc(var(--frame-unit) * 0.3);
-  text-shadow: 0 calc(var(--frame-unit) * 0.6) 0 rgba(0, 0, 0, 0.45);
+  text-shadow: 0 calc(var(--frame-unit) * 0.5) 0 rgba(0, 0, 0, 0.45);
 }
 
 /* ---- Health bar ---- */

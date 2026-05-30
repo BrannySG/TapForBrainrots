@@ -13,6 +13,9 @@ export class Hud {
   private readonly goldValue = el("span", "value");
   private readonly gemsValue = el("span", "value");
   private readonly brainrotValue = el("span", "badge");
+  private readonly locationName = el("span", "hud-location-name");
+  private worldName = "";
+  private stage = 1;
 
   // Count-up tween state for the gold display (presentation only; the true
   // gold in core is always correct, we just animate how it is shown).
@@ -36,7 +39,15 @@ export class Hud {
       this.iconButton(ICONS.calendar)
     );
 
-    root.append(row1, row2);
+    // Compact location row under the rebirth HUD: a pin glyph + "Location -
+    // Stage N". Replaces the big stacked world/stage text that used to sit
+    // centered over the chest.
+    const location = el("div", "hud-location");
+    const pin = el("span", "hud-location-pin");
+    pin.textContent = "\u{1F4CD}"; // round pushpin
+    location.append(pin, this.locationName);
+
+    root.append(row1, row2, location);
     parent.append(root);
 
     const snap = core.getSnapshot();
@@ -45,6 +56,9 @@ export class Hud {
     this.goldValue.textContent = formatNumber(snap.gold);
     this.gemsValue.textContent = formatNumber(snap.gems);
     this.brainrotValue.textContent = String(snap.ownedBrainrots);
+    this.worldName = snap.worldName;
+    this.stage = snap.stage;
+    this.renderLocation();
 
     bus.on("goldChanged", ({ gold, delta }) => {
       this.goldTarget = gold;
@@ -62,6 +76,19 @@ export class Hud {
     bus.on("brainrotGained", () => {
       this.brainrotValue.textContent = String(core.getSnapshot().ownedBrainrots);
     });
+    bus.on("worldChanged", ({ name, stage }) => {
+      this.worldName = name;
+      this.stage = stage;
+      this.renderLocation();
+    });
+    bus.on("stageChanged", ({ stage }) => {
+      this.stage = stage;
+      this.renderLocation();
+    });
+  }
+
+  private renderLocation(): void {
+    this.locationName.textContent = `${this.worldName} - Stage ${this.stage}`;
   }
 
   private startGoldTween(): void {

@@ -61,9 +61,10 @@ export class Juice {
         this.renderer.shake(0.18);
         this.popup(`-${formatNumber(e.amount)}`, "#ffffff");
       } else {
-        // Passive ticks are now batched (~0.33s); make each a clear throb.
+        // Passive ticks are batched (~0.33s); keep them a soft breathing pulse
+        // with almost no camera shake so idle damage isn't nauseating.
         this.renderer.hero.throbPulse(1);
-        this.renderer.shake(0.14);
+        this.renderer.shake(0.05);
       }
     });
 
@@ -124,15 +125,17 @@ export class Juice {
     const rect = this.fxLayer.getBoundingClientRect();
     if (rect.width === 0) return;
 
-    // Chest centre, slightly above the vertical middle of the frame.
+    // Chest centre: the items should feel like they burst from the middle of
+    // the chest, so anchor on the vertical centre of the frame.
     const originX = rect.width * 0.5;
-    const originY = rect.height * 0.46;
+    const originY = rect.height * 0.5;
     const color = RARITY_CSS[rarity];
 
-    // Fan items out: centre a single drop, spread multiples left/right + up.
+    // Fan items out horizontally; keep them near the chest centre vertically
+    // (a hair of jitter) so they sit centrally instead of floating high.
     const centered = index - (count - 1) / 2; // ...-0.5, +0.5 (2) / 0 (1)
     const offX = centered * rect.width * 0.24 + (Math.random() * 2 - 1) * rect.width * 0.02;
-    const offY = -rect.height * 0.13 - Math.random() * rect.height * 0.03;
+    const offY = (Math.random() * 2 - 1) * rect.height * 0.02;
     const tilt = centered * 14 + (Math.random() * 6 - 3); // degrees
 
     const item = document.createElement("div");
@@ -153,7 +156,11 @@ export class Juice {
 
     this.fxLayer.append(item);
 
-    const lingerMs = 1000;
+    // Items live a touch longer so the read is clear, then collapse into the
+    // coin burst. The collapse and the coins overlap (see popStartMs) so the
+    // item visibly *becomes* gold instead of vanishing into an empty gap.
+    const lingerMs = 1500;
+    const popStartMs = lingerMs * 0.88;
     // Burst outward (overshoot), settle at the fan position, then hold.
     item.animate(
       [
@@ -161,12 +168,12 @@ export class Juice {
         {
           transform: `translate(-50%, -50%) translate(${offX * 1.12}px, ${offY * 1.12}px) scale(1.28) rotate(${tilt * 1.15}deg)`,
           opacity: 1,
-          offset: 0.22,
+          offset: 0.15,
         },
         {
           transform: `translate(-50%, -50%) translate(${offX}px, ${offY}px) scale(1) rotate(${tilt}deg)`,
           opacity: 1,
-          offset: 0.4,
+          offset: 0.27,
         },
         {
           transform: `translate(-50%, -50%) translate(${offX}px, ${offY}px) scale(1) rotate(${tilt}deg)`,
@@ -174,7 +181,7 @@ export class Juice {
           offset: 0.88,
         },
         {
-          transform: `translate(-50%, -50%) translate(${offX}px, ${offY}px) scale(1.35) rotate(${tilt}deg)`,
+          transform: `translate(-50%, -50%) translate(${offX}px, ${offY}px) scale(0.4) rotate(${tilt}deg)`,
           opacity: 0,
           offset: 1,
         },
@@ -182,10 +189,12 @@ export class Juice {
       { duration: lingerMs, easing: "cubic-bezier(0.2, 0.9, 0.3, 1.3)", fill: "forwards" }
     );
 
+    // Spawn the coins as the item begins to collapse so the conversion reads as
+    // one continuous "item -> gold" motion rather than fade-then-pause-then-coins.
     window.setTimeout(() => {
-      item.remove();
       this.burstCoins(originX + offX, originY + offY, COINS_BY_RARITY[rarity]);
-    }, lingerMs);
+    }, popStartMs);
+    window.setTimeout(() => item.remove(), lingerMs);
   }
 
   /** Spawn `count` coins as a pile at (x,y) that fly to the gold pill one by one. */
@@ -212,7 +221,7 @@ export class Juice {
       const dy = targetY - startY;
       // Upward arc on the way in, with a clear one-by-one launch cadence.
       const arc = layerRect.height * (0.1 + Math.random() * 0.08);
-      const delay = i * 85;
+      const delay = i * 60;
       const duration = 480 + Math.random() * 160;
 
       const anim = coin.animate(

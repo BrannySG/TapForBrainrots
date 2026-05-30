@@ -84,12 +84,12 @@ export class HeroObject {
   }
 
   /**
-   * Trigger a dramatic passive-damage swell. Distinct from `hit`: a bigger,
-   * slower pulse so the now-batched passive ticks read as a clear throb instead
-   * of a per-frame vibration.
+   * Trigger a gentle passive-damage swell. Distinct from `hit`: a soft, slow
+   * breathing pulse so batched passive ticks read as a calm throb instead of a
+   * nauseating per-tick flicker.
    */
   throbPulse(strength = 1): void {
-    this.throb = Math.min(1, this.throb + strength);
+    this.throb = Math.min(1, this.throb + 0.5 * strength);
   }
 
   /**
@@ -112,9 +112,9 @@ export class HeroObject {
 
     // Tap punch decays fast for a snappy response.
     this.punch = Math.max(0, this.punch - dt * 4);
-    // Passive throb is bigger and decays slower so each batched tick reads as
-    // a full swell within its ~0.33s interval.
-    this.throb = Math.max(0, this.throb - dt * 3.2);
+    // Passive throb decays slowly so the batched ticks blend into a gentle,
+    // continuous breathing rather than a hard sawtooth flicker.
+    this.throb = Math.max(0, this.throb - dt * 2.2);
     // Spawn pop eases out.
     this.spawnPop = Math.max(0, this.spawnPop - dt * 3);
 
@@ -130,8 +130,8 @@ export class HeroObject {
 
     const squash = 1 - this.punch * 0.18;
     const stretch = 1 + this.punch * 0.12;
-    // Dramatic uniform swell for passive hits (grow then settle).
-    const throbScale = 1 + this.throb * 0.24;
+    // Subtle uniform swell for passive hits (gentle breathing, not a flicker).
+    const throbScale = 1 + this.throb * 0.08;
     const spawnScale = 1 - this.spawnPop * 0.4;
     const s = spawnScale * breakScale * throbScale;
 
