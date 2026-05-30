@@ -17,6 +17,7 @@ export interface DebugApi {
   spawnChest: () => void;
   kill: () => void;
   advanceRespawn: () => void;
+  resolveReveal: () => void;
   addGold: (amount: number) => void;
   fastForward: (seconds: number) => void;
   setFx: (enabled: boolean) => void;
@@ -49,6 +50,7 @@ export function installDebugApi(
     spawnChest: () => core.debugSpawnChest(),
     kill: () => core.debugKillTarget(),
     advanceRespawn: () => core.debugAdvanceRespawn(),
+    resolveReveal: () => core.debugResolveReveal(),
     addGold: (amount: number) => core.debugAddGold(amount),
     fastForward: (seconds: number) => core.debugFastForward(seconds),
     setFx: (enabled: boolean) => {

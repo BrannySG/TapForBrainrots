@@ -1,6 +1,7 @@
 import { GameCore } from "../core/GameCore";
 import { SceneRenderer } from "../render/SceneRenderer";
 import { Ui } from "../ui/Ui";
+import { RevealOverlay } from "../ui/RevealOverlay";
 import { Layout } from "../ui/Layout";
 import { Juice } from "../fx/Juice";
 import { AudioSystem } from "../audio/AudioSystem";
@@ -29,6 +30,9 @@ export function bootstrap(): void {
   new Ui(uiRoot, core, core.bus);
   const juice = new Juice(uiRoot, renderer, core.bus);
   const audio = new AudioSystem(core.bus);
+  // The Lucky Block summon takeover. Appended last so it sits above the HUD/FX;
+  // its cosmetic bursts honour the FX toggle, the page itself always shows.
+  new RevealOverlay(uiRoot, core, core.bus, audio, () => juice.enabled);
 
   const layout = new Layout(frame, (w, h) => renderer.resize(w, h));
   layout.apply();
@@ -45,5 +49,5 @@ export function bootstrap(): void {
   installDebugApi(core, juice, audio);
 
   core.start();
-  new GameLoop(core, renderer, juice).start();
+  new GameLoop(core, renderer).start();
 }

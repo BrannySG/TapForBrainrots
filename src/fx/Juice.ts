@@ -23,18 +23,16 @@ const COINS_BY_RARITY: Record<Rarity, number> = {
 };
 
 /**
- * The "juice" layer: screenshake, hit squash, floating numbers, reveal flash,
- * and the brainrot reveal toast. It only listens to core events and drives the
- * renderer + ephemeral DOM. Toggling it off changes nothing about game logic
- * or the HUD numbers - purely presentation.
+ * The "juice" layer: screenshake, hit squash, floating numbers, and the loot
+ * sell burst. It only listens to core events and drives the renderer +
+ * ephemeral DOM. Toggling it off changes nothing about game logic or the HUD
+ * numbers - purely presentation. (The Lucky Block summon reveal is owned by
+ * `RevealOverlay`, not this layer.)
  */
 export class Juice {
   enabled = true;
 
   private readonly fxLayer: HTMLDivElement;
-  private readonly flash: HTMLDivElement;
-  private readonly toast: HTMLDivElement;
-  private toastTimer = 0;
   /** Cached gold HUD pill used as the coin-flight destination. */
   private goldAnchor: HTMLElement | null = null;
 
@@ -46,13 +44,7 @@ export class Juice {
     this.fxLayer = document.createElement("div");
     this.fxLayer.className = "fx-layer";
 
-    this.flash = document.createElement("div");
-    this.flash.className = "reveal-flash";
-
-    this.toast = document.createElement("div");
-    this.toast.className = "toast";
-
-    parent.append(this.fxLayer, this.flash, this.toast);
+    parent.append(this.fxLayer);
 
     bus.on("targetDamaged", (e) => {
       if (!this.enabled) return;
@@ -82,21 +74,6 @@ export class Juice {
         e.index * 110
       );
     });
-
-    bus.on("luckyReveal", (e) => {
-      if (!this.enabled) return;
-      this.fireFlash(RARITY_CSS[e.rarity]);
-      const status = e.isNew ? "NEW!" : `Level ${e.level}`;
-      this.showToast(e.name, `${e.rarity.toUpperCase()} - ${status}`, RARITY_CSS[e.rarity]);
-    });
-  }
-
-  /** Called by the game loop to tick toast lifetime. */
-  update(dt: number): void {
-    if (this.toastTimer > 0) {
-      this.toastTimer -= dt;
-      if (this.toastTimer <= 0) this.toast.classList.remove("show");
-    }
   }
 
   private popup(text: string, color?: string, gold = false): void {
@@ -273,27 +250,5 @@ export class Juice {
     pill.classList.remove("bump");
     void pill.offsetWidth; // restart the animation
     pill.classList.add("bump");
-  }
-
-  private fireFlash(color: string): void {
-    this.flash.style.background = `radial-gradient(circle at 50% 42%, ${color}, transparent 60%)`;
-    this.flash.classList.remove("fire");
-    // Force reflow so the animation restarts.
-    void this.flash.offsetWidth;
-    this.flash.classList.add("fire");
-  }
-
-  private showToast(title: string, sub: string, color: string): void {
-    this.toast.innerHTML = "";
-    const t = document.createElement("div");
-    t.className = "toast-title";
-    t.textContent = title;
-    t.style.color = color;
-    const s = document.createElement("div");
-    s.className = "toast-sub";
-    s.textContent = sub;
-    this.toast.append(t, s);
-    this.toast.classList.add("show");
-    this.toastTimer = 2.2;
   }
 }

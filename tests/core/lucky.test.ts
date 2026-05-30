@@ -32,6 +32,35 @@ describe("lucky blocks & brainrots", () => {
     expect(core.getSnapshot().luckyBlocksBroken).toBe(1);
   });
 
+  it("pauses the sim during the reveal and resumes on resolve", () => {
+    const core = makeCore(23);
+
+    core.debugSpawnLucky();
+    core.debugKillTarget();
+
+    // Reward is granted immediately, but the sim is paused for the reveal.
+    const afterBreak = core.getSnapshot();
+    expect(afterBreak.ownedBrainrots).toBe(1);
+    expect(afterBreak.revealPending).toBe(true);
+    expect(afterBreak.target).toBeNull();
+
+    // While paused, advancing time must not spawn the next target.
+    core.debugFastForward(5);
+    expect(core.getSnapshot().target).toBeNull();
+    expect(core.getSnapshot().revealPending).toBe(true);
+
+    // Resolving the reveal unpauses and lets the next target spawn.
+    core.resolveReveal();
+    expect(core.getSnapshot().revealPending).toBe(false);
+
+    let spawnedAfterResolve = false;
+    core.bus.on("targetSpawned", () => {
+      spawnedAfterResolve = true;
+    });
+    core.debugFastForward(5);
+    expect(spawnedAfterResolve).toBe(true);
+  });
+
   it("duplicate brainrots bank copies and eventually level up", () => {
     const core = makeCore(31);
     // Force the same brainrot repeatedly by reusing the seeded selection.

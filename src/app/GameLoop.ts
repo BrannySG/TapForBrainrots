@@ -1,6 +1,5 @@
 import type { GameCore } from "../core/GameCore";
 import type { SceneRenderer } from "../render/SceneRenderer";
-import type { Juice } from "../fx/Juice";
 
 /**
  * Drives the frame loop: a fixed-step core update (deterministic passive
@@ -16,8 +15,7 @@ export class GameLoop {
 
   constructor(
     private readonly core: GameCore,
-    private readonly renderer: SceneRenderer,
-    private readonly juice: Juice
+    private readonly renderer: SceneRenderer
   ) {}
 
   start(): void {
@@ -42,7 +40,6 @@ export class GameLoop {
       this.acc -= this.step;
     }
 
-    this.juice.update(dt);
     this.renderer.render(dt);
 
     if (this.running) this.raf = requestAnimationFrame(this.tick);

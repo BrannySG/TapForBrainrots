@@ -60,15 +60,39 @@ export class BrainrotSystem {
     });
   }
 
-  /** A small shuffled set of ids (winner last) for the reveal carousel. */
+  /**
+   * Build the reveal cycle sequence (winner is always last). Early spins pull
+   * from the whole roster for variety; later spins increasingly bias toward the
+   * winner's rarity to tease the result before it lands. Uses the seeded rng so
+   * the whole reveal is reproducible.
+   */
   private buildCandidates(winnerId: string): string[] {
-    const others = BRAINROTS.map((b) => b.id).filter((id) => id !== winnerId);
-    // Fisher-Yates using the seeded rng so the carousel is deterministic too.
-    for (let i = others.length - 1; i > 0; i--) {
-      const j = this.rng.int(0, i);
-      [others[i], others[j]] = [others[j], others[i]];
+    const winner = BRAINROTS_BY_ID[winnerId];
+    const tier = BRAINROTS.filter((b) => b.rarity === winner.rarity);
+    const cycleCount = 16; // visible spins before the final reveal
+    const seq: string[] = [];
+
+    for (let i = 0; i < cycleCount; i++) {
+      const progress = i / cycleCount;
+      // Past ~60% of the spin, ramp up the chance of teasing the winner's tier.
+      const teaseWinnerTier =
+        progress > 0.6 && this.rng.next() < (progress - 0.6) / 0.4;
+      const pool = teaseWinnerTier && tier.length > 0 ? tier : BRAINROTS;
+
+      let pick = this.rng.pick(pool).id;
+      // Don't spoil the winner early, and avoid an immediate repeat.
+      let guard = 0;
+      while (
+        (pick === winnerId || pick === seq[seq.length - 1]) &&
+        guard < 8
+      ) {
+        pick = this.rng.pick(pool).id;
+        guard++;
+      }
+      seq.push(pick);
     }
-    const lead = others.slice(0, Math.min(5, others.length));
-    return [...lead, winnerId].map((id) => BRAINROTS_BY_ID[id].id);
+
+    seq.push(winnerId);
+    return seq;
   }
 }

@@ -1,5 +1,6 @@
 import type { EventBus } from "../core/events/EventBus";
-import type { TargetKind } from "../core/types";
+import type { Rarity, TargetKind } from "../core/types";
+import { RARITY_ORDER } from "../core/types";
 
 interface ToneOptions {
   freq: number;
@@ -98,6 +99,35 @@ export class AudioSystem {
     // Magical rising sweep with a shimmer tail.
     this.tone({ freq: 330, endFreq: 1180, type: "sine", duration: 0.5, gain: 0.18 });
     this.tone({ freq: 880, endFreq: 1320, type: "triangle", duration: 0.3, gain: 0.1, delay: 0.18 });
+  }
+
+  /**
+   * One carousel "tick" per cycle of the summon reveal. `progress` (0..1) is how
+   * far through the spin we are, raising the pitch to build tension as it slows.
+   */
+  playTick(progress = 0): void {
+    const base = 300 + Math.max(0, Math.min(1, progress)) * 520;
+    this.tone({ freq: base, endFreq: base * 1.5, type: "square", duration: 0.05, gain: 0.1 });
+  }
+
+  /**
+   * The final summon reveal stinger - a boom plus a rising chord. Grander for
+   * higher rarities (deeper boom + more chord notes).
+   */
+  playReveal(rarity: Rarity): void {
+    const tier = Math.max(0, RARITY_ORDER.indexOf(rarity)); // 0..4
+    this.noise({ duration: 0.4, gain: 0.28 + tier * 0.04, cutoff: 1100 + tier * 450 });
+    this.tone({ freq: 120, endFreq: 55, type: "sine", duration: 0.5, gain: 0.3 });
+    const chord = [523, 659, 784, 988, 1319];
+    for (let i = 0; i <= tier; i++) {
+      this.tone({
+        freq: chord[i],
+        type: "triangle",
+        duration: 0.5 - i * 0.03,
+        gain: 0.12,
+        delay: 0.05 * i,
+      });
+    }
   }
 
   // ---- Synth primitives ---------------------------------------------------

@@ -32,6 +32,13 @@ export interface GameState {
   /** Seconds remaining before the next target spawns (0 when not waiting). */
   respawnTimer: number;
 
+  /**
+   * True while a Lucky Block reward is being revealed. The sim is paused (no
+   * passive damage, no respawn) until the reveal is resolved, so the summon
+   * takeover can play uninterrupted.
+   */
+  revealPending: boolean;
+
   /** upgradeId -> owned level. */
   upgrades: Record<string, number>;
 
@@ -61,6 +68,7 @@ export function createInitialState(rngSeed: number): GameState {
     totalChestsBroken: 0,
     luckyBlocksBroken: 0,
     respawnTimer: 0,
+    revealPending: false,
     upgrades: {},
     brainrots: {},
     discoveredItems: [],

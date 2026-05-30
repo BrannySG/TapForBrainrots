@@ -123,8 +123,22 @@ export class GameCore {
   /** Advance passive damage + the respawn timer. `dt` is seconds. */
   update(dt: number): void {
     if (dt <= 0) return;
+    // A pending Lucky Block reveal freezes the whole sim (no passive damage,
+    // no respawn) so the summon takeover plays uninterrupted behind the overlay.
+    if (this.state.revealPending) return;
     this.tickRespawn(dt);
     this.passive.update(dt, this.stats.passiveDps, this.applyDamageBound);
+  }
+
+  /**
+   * Finish a Lucky Block reveal: unpause the sim and start the respawn timer so
+   * the next target spawns. Called by the reveal overlay on tap-to-continue.
+   * No-op if no reveal is pending.
+   */
+  resolveReveal(): void {
+    if (!this.state.revealPending) return;
+    this.state.revealPending = false;
+    this.state.respawnTimer = Balance.respawn.delay;
   }
 
   private tickRespawn(dt: number): void {
@@ -161,22 +175,25 @@ export class GameCore {
       name: target.name,
     });
 
+    this.state.target = null;
+
     if (target.kind === "chest") {
       this.economy.dropAndSell(target.rarity, this.stats.goldMultiplier);
       this.state.totalChestsBroken += 1;
       this.state.chestsBrokenSinceLucky += 1;
       this.progression.advanceStage();
+      // Wait a beat so the break + loot burst can be felt; the next target
+      // spawns once `respawnTimer` elapses in `update`.
+      this.state.respawnTimer = Balance.respawn.delay;
     } else {
       this.state.luckyBlocksBroken += 1;
       this.brainrot.grantReward(target.rarity);
       // Brainrot ownership changed -> stats must refresh.
       this.recomputeStats();
+      // Pause the sim and hold for the summon reveal; the respawn timer starts
+      // only once the reveal is resolved (see `resolveReveal`).
+      this.state.revealPending = true;
     }
-
-    // Clear the target and wait a beat so the break + loot burst can be felt;
-    // the next target spawns once `respawnTimer` elapses in `update`.
-    this.state.target = null;
-    this.state.respawnTimer = Balance.respawn.delay;
   }
 
   private spawnNext(): void {
@@ -210,6 +227,7 @@ export class GameCore {
       unlockedWorlds: [...this.state.unlockedWorlds],
       stage: this.state.stage,
       target: this.state.target ? { ...this.state.target } : null,
+      revealPending: this.state.revealPending,
       stats: { ...this.stats },
       totalChestsBroken: this.state.totalChestsBroken,
       luckyBlocksBroken: this.state.luckyBlocksBroken,
@@ -307,10 +325,18 @@ export class GameCore {
    * (debug/testing) so flows stay deterministic without simulating the delay.
    */
   debugAdvanceRespawn(): void {
+    // A pending reveal would otherwise pause everything; clear it so headless
+    // flows (tests) don't soft-lock waiting for a tap-to-continue.
+    this.state.revealPending = false;
     if (this.state.respawnTimer > 0 || !this.state.target) {
       this.state.respawnTimer = 0;
       if (!this.state.target) this.spawnNext();
     }
+  }
+
+  /** Resolve a pending Lucky Block reveal (debug/testing). */
+  debugResolveReveal(): void {
+    this.resolveReveal();
   }
 
   /** Run `seconds` of passive simulation in fixed steps (debug/testing). */

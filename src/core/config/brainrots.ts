@@ -22,65 +22,108 @@ export interface BrainrotDef {
   effect: BrainrotEffect;
 }
 
-export const BRAINROTS: BrainrotDef[] = [
-  {
-    id: "goblin_guy",
-    name: "Goblin Guy",
-    rarity: "common",
-    effect: { passiveDps: 2, passiveDpsPerLevel: 1 },
-  },
-  {
-    id: "skibidi_goon",
-    name: "Skibidi Goon",
-    rarity: "common",
-    effect: { passiveDps: 3, passiveDpsPerLevel: 1 },
-  },
-  {
-    id: "toilet_king",
-    name: "Toilet King",
-    rarity: "rare",
-    effect: { goldMultPct: 10, goldMultPctPerLevel: 2 },
-  },
-  {
-    id: "cappuccino_assassino",
-    name: "Cappuccino Assassino",
-    rarity: "rare",
-    effect: { passiveDps: 8, passiveDpsPerLevel: 3, goldMultPct: 3 },
-  },
-  {
-    id: "radioactive_gremlin",
-    name: "Radioactive Gremlin",
-    rarity: "epic",
-    effect: {
-      passiveDps: 25,
-      passiveDpsPerLevel: 8,
-      luckyChancePct: 5,
-      luckyChancePctPerLevel: 1,
-    },
-  },
-  {
-    id: "tung_tung_sahur",
-    name: "Tung Tung Sahur",
-    rarity: "legendary",
-    effect: {
-      passiveDps: 50,
-      passiveDpsPerLevel: 18,
-      goldMultPct: 25,
-      goldMultPctPerLevel: 5,
-    },
-  },
-  {
-    id: "mythic_sigma_beast",
-    name: "Mythic Sigma Beast",
-    rarity: "mythic",
-    effect: {
-      passiveDps: 100,
-      passiveDpsPerLevel: 25,
-      goldMultPct: 50,
-      goldMultPctPerLevel: 10,
-    },
-  },
+/**
+ * Raw roster: id (matches the sprite slug in `src/assets/brainrots/<id>.png`),
+ * display name, and rarity. Effects are derived from rarity below so the table
+ * stays compact and easy to rebalance. These are placeholder stats - tune later.
+ */
+const ROSTER: ReadonlyArray<readonly [id: string, name: string, rarity: Rarity]> = [
+  // Common
+  ["67", "67", "common"],
+  ["noobini_pizzanini", "Noobini Pizzanini", "common"],
+  ["tim_cheese", "Tim Cheese", "common"],
+  ["matteo", "Matteo", "common"],
+  ["antonio", "Antonio", "common"],
+  ["alessio", "Alessio", "common"],
+  ["pipi_kiwi", "Pipi Kiwi", "common"],
+  ["pipi_corni", "Pipi Corni", "common"],
+  ["pipi_avocado", "Pipi Avocado", "common"],
+  ["dul_dul_dul", "Dul Dul Dul", "common"],
+  ["brr_brr_patapim", "Brr Brr Patapim", "common"],
+  ["gangster_footera", "Gangster Footera", "common"],
+  ["bandito_bobritto", "Bandito Bobritto", "common"],
+  ["bandito_axolito", "Bandito Axolito", "common"],
+  ["salamino_penguino", "Salamino Penguino", "common"],
+  ["penguino_cocosino", "Penguino Cocosino", "common"],
+  // Rare
+  ["cappuccino_assassino", "Cappuccino Assassino", "rare"],
+  ["boneca_ambalabu", "Boneca Ambalabu", "rare"],
+  ["trippi_troppi", "Trippi Troppi", "rare"],
+  ["brr_es_teh_patipum", "Brr es Teh Patipum", "rare"],
+  ["carrotini_brainini", "Carrotini Brainini", "rare"],
+  ["gattatino_nyanino", "Gattatino Nyanino", "rare"],
+  ["frigo_camelo", "Frigo Camelo", "rare"],
+  ["rhino_toasterino", "Rhino Toasterino", "rare"],
+  ["burbaloni_loliloli", "Burbaloni Loliloli", "rare"],
+  ["perochello_lemonchello", "Perochello Lemonchello", "rare"],
+  ["piccione_macchina", "Piccione Macchina", "rare"],
+  // Epic
+  ["chimpanzini_bananini", "Chimpanzini Bananini", "epic"],
+  ["brri_brri_bicus_dicus_bombicus", "Brri Brri Bicus Dicus Bombicus", "epic"],
+  ["cocofanto_elefanto", "Cocofanto Elefanto", "epic"],
+  ["bananita_dolphinita", "Bananita Dolphinita", "epic"],
+  ["spioniro_golubiro", "Spioniro Golubiro", "epic"],
+  ["ganganzelli_trulala", "Ganganzelli Trulala", "epic"],
+  ["agarrini_la_palini", "Agarrini la Palini", "epic"],
+  ["chef_crabracadabra", "Chef Crabracadabra", "epic"],
+  ["pakrahmatmamat", "Pakrahmatmamat", "epic"],
+  // Legendary
+  ["lirili_larila", "Lirili Larila", "legendary"],
+  ["espresso_signora", "Espresso Signora", "legendary"],
+  ["orcalero_orcala", "Orcalero Orcala", "legendary"],
+  ["gorillo_watermelondrillo", "Gorillo Watermelondrillo", "legendary"],
+  ["dragon_cannelloni", "Dragon Cannelloni", "legendary"],
+  // Mythic
+  ["graipuss_medussi", "Graipuss Medussi", "mythic"],
+  ["extinct_tralalero", "Extinct Tralalero", "mythic"],
+  ["sigma_boy", "Sigma Boy", "mythic"],
 ];
+
+/**
+ * Placeholder effect for a brainrot, derived from its rarity with a little
+ * variation by its index within the tier so they aren't all identical. Higher
+ * rarity = stronger base stats and stronger per-level scaling.
+ */
+function rosterEffect(rarity: Rarity, i: number): BrainrotEffect {
+  switch (rarity) {
+    case "common":
+      return { passiveDps: 2 + (i % 4), passiveDpsPerLevel: 1 };
+    case "rare":
+      return i % 2 === 0
+        ? { goldMultPct: 8 + (i % 3) * 2, goldMultPctPerLevel: 2 }
+        : { passiveDps: 8 + (i % 3) * 2, passiveDpsPerLevel: 3, goldMultPct: 3 };
+    case "epic":
+      return {
+        passiveDps: 22 + (i % 3) * 4,
+        passiveDpsPerLevel: 8,
+        luckyChancePct: 3 + (i % 2),
+        luckyChancePctPerLevel: 1,
+      };
+    case "legendary":
+      return {
+        passiveDps: 45 + (i % 3) * 6,
+        passiveDpsPerLevel: 18,
+        goldMultPct: 20 + (i % 3) * 4,
+        goldMultPctPerLevel: 5,
+      };
+    case "mythic":
+      return {
+        passiveDps: 90 + (i % 3) * 12,
+        passiveDpsPerLevel: 25,
+        goldMultPct: 50,
+        goldMultPctPerLevel: 10,
+      };
+  }
+}
+
+export const BRAINROTS: BrainrotDef[] = (() => {
+  const perRarity: Partial<Record<Rarity, number>> = {};
+  return ROSTER.map(([id, name, rarity]) => {
+    const i = perRarity[rarity] ?? 0;
+    perRarity[rarity] = i + 1;
+    return { id, name, rarity, effect: rosterEffect(rarity, i) };
+  });
+})();
 
 export const BRAINROTS_BY_ID: Record<string, BrainrotDef> = Object.fromEntries(
   BRAINROTS.map((b) => [b.id, b])

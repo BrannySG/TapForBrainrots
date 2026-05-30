@@ -473,55 +473,213 @@ body {
   }
 }
 
-/* ---- Reveal flash overlay ---- */
-.reveal-flash {
+/* ---- Lucky Block summon reveal (full-screen takeover) ---- */
+.reveal-overlay {
   position: absolute;
   inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* Tinted by the current cycle's rarity; defaults to common. */
+  --reveal-color: var(--rarity-common);
+  opacity: 0;
   pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+
+.reveal-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.reveal-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 44%, var(--reveal-color) 0%, transparent 58%),
+    radial-gradient(circle at 50% 50%, #1a0b26 0%, #06010c 100%);
+}
+
+.reveal-title {
+  position: relative;
+  margin-top: calc(var(--frame-unit) * 14);
+  font-size: calc(var(--frame-unit) * 9);
+  font-weight: 900;
+  letter-spacing: calc(var(--frame-unit) * 0.4);
+  color: #fff;
+  text-shadow:
+    0 0 calc(var(--frame-unit) * 3) var(--reveal-color),
+    0 calc(var(--frame-unit) * 0.8) 0 rgba(0, 0, 0, 0.5);
+  -webkit-text-stroke: calc(var(--frame-unit) * 0.6) rgba(0, 0, 0, 0.55);
+}
+
+.reveal-stage {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Soft pulsing rarity-tinted glow behind the character. */
+.reveal-glow,
+.reveal-rays {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--reveal-color);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  pointer-events: none;
+}
+
+.reveal-glow {
+  width: calc(var(--frame-unit) * 92);
+  height: calc(var(--frame-unit) * 92);
+  opacity: 0.85;
+  animation: reveal-glow-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes reveal-glow-pulse {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(0.92);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.08);
+    opacity: 0.95;
+  }
+}
+
+/* Burst of rays at the final reveal (hidden until fired). */
+.reveal-rays {
+  width: calc(var(--frame-unit) * 130);
+  height: calc(var(--frame-unit) * 130);
   opacity: 0;
 }
 
-.reveal-flash.fire {
-  animation: reveal-flash 0.5s ease-out;
+.reveal-rays.fire {
+  animation: reveal-rays-burst 0.9s ease-out;
 }
 
-@keyframes reveal-flash {
+@keyframes reveal-rays-burst {
   0% {
-    opacity: 0.85;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3) rotate(-20deg);
+  }
+  35% {
+    opacity: 0.9;
+    transform: translate(-50%, -50%) scale(1.05) rotate(0deg);
   }
   100% {
     opacity: 0;
+    transform: translate(-50%, -50%) scale(1.5) rotate(18deg);
   }
 }
 
-/* ---- Toast (brainrot reveal result) ---- */
-.toast {
+.reveal-sprite {
+  position: relative;
+  width: calc(var(--frame-unit) * 62);
+  height: calc(var(--frame-unit) * 62);
+  object-fit: contain;
+  filter: drop-shadow(0 0 calc(var(--frame-unit) * 4) var(--reveal-color));
+}
+
+/* Black silhouette while cycling, before the reveal. */
+.reveal-sprite.silhouette {
+  filter: brightness(0) drop-shadow(0 0 calc(var(--frame-unit) * 2) rgba(0, 0, 0, 0.6));
+}
+
+.reveal-burst {
   position: absolute;
-  top: calc(var(--frame-unit) * 40);
   left: 50%;
-  transform: translateX(-50%) translateY(calc(var(--frame-unit) * 4));
-  background: var(--hud-pill);
-  border: calc(var(--frame-unit) * 0.5) solid rgba(255, 255, 255, 0.2);
-  border-radius: calc(var(--frame-unit) * 3);
-  padding: calc(var(--frame-unit) * 2.5) calc(var(--frame-unit) * 4);
-  text-align: center;
-  color: #fff;
-  opacity: 0;
+  top: 50%;
+  width: 0;
+  height: 0;
   pointer-events: none;
-  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-.toast.show {
+.reveal-spark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  background: var(--reveal-color);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  filter: drop-shadow(0 0 calc(var(--frame-unit) * 1.5) var(--reveal-color));
+}
+
+.reveal-card {
+  position: relative;
+  text-align: center;
+  margin-bottom: calc(var(--frame-unit) * 6);
+  opacity: 0;
+  transform: translateY(calc(var(--frame-unit) * 4));
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.reveal-card.show {
   opacity: 1;
-  transform: translateX(-50%) translateY(0);
+  transform: translateY(0);
 }
 
-.toast .toast-title {
-  font-size: calc(var(--frame-unit) * 6);
+.reveal-rarity {
+  font-size: calc(var(--frame-unit) * 4.4);
   font-weight: 900;
+  letter-spacing: calc(var(--frame-unit) * 0.6);
+  color: var(--reveal-color);
+  text-shadow: 0 0 calc(var(--frame-unit) * 2.5) var(--reveal-color);
 }
 
-.toast .toast-sub {
-  font-size: calc(var(--frame-unit) * 4);
-  opacity: 0.85;
+.reveal-name {
+  font-size: calc(var(--frame-unit) * 8);
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 calc(var(--frame-unit) * 0.8) 0 rgba(0, 0, 0, 0.5);
+  margin: calc(var(--frame-unit) * 0.5) 0;
+}
+
+.reveal-effect {
+  font-size: calc(var(--frame-unit) * 4.6);
+  font-weight: 700;
+  color: #d9f5e4;
+  opacity: 0.92;
+}
+
+.reveal-cta {
+  position: relative;
+  margin-bottom: calc(var(--frame-unit) * 12);
+  font-size: calc(var(--frame-unit) * 4.2);
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.85);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  animation: reveal-cta-pulse 1.4s ease-in-out infinite;
+}
+
+.reveal-cta.show {
+  opacity: 1;
+}
+
+@keyframes reveal-cta-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
 }

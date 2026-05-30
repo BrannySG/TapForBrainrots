@@ -14,6 +14,16 @@ Keep entries brief and practical. Review this file before planning or implementi
 <!-- Add newest entries at the top. -->
 
 - Date: 2026-05-30
+- Roadblock: Verifying the lucky-block reveal in a backgrounded Cursor browser tab: the rAF-driven `GameLoop` is throttled/paused when the tab isn't focused, so passive damage + respawn never advanced and the next target stayed null after `resolveReveal`.
+- Solution: Drive deterministic state via the `window.__GAME` debug API (`advanceRespawn`) instead of waiting on rAF; setTimeout-based flows (the reveal cycle) still run, but anything in the rAF loop won't.
+- Prevention: For headless/background browser checks, assert state through debug commands, not by waiting on the real-time game loop.
+
+- Date: 2026-05-30
+- Roadblock: A test that broke a lucky block then `fastForward`ed expected a target to exist, but the freshly granted brainrot's passive DPS broke the new chest and left the sim on a respawn gap (target null) - flaky.
+- Solution: Assert the next spawn via the `targetSpawned` event (subscribed after `resolveReveal`) rather than snapshotting `target` after an arbitrary fast-forward.
+- Prevention: When passive damage can race a time-advance in tests, assert on events, not on a post-delay state snapshot.
+
+- Date: 2026-05-30
 - Roadblock: `python` is not on PATH on this Windows machine (the Microsoft Store alias shadows it), and numpy isn't installed; the integrated shell also returned "no exit status" until it warmed up.
 - Solution: Use the `py` launcher for Python; did sprite-sheet extraction with pure Pillow (alpha projection profiles + `getbbox`) so no numpy/ImageMagick needed. Re-run a trivial `echo` first if the shell reports no exit status.
 - Prevention: Prefer `py` over `python` here; avoid numpy/scipy-only approaches for asset scripts; warm the shell with a no-op before relying on output.
