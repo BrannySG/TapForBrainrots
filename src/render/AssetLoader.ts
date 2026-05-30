@@ -19,7 +19,7 @@ export async function loadLuckyBlock(): Promise<THREE.Group> {
   ]);
 
   texture.colorSpace = THREE.SRGBColorSpace;
-  texture.flipY = false; // FBX UVs are not flipped like glTF/Three defaults.
+  texture.flipY = true;
 
   const material = new THREE.MeshStandardMaterial({
     map: texture,

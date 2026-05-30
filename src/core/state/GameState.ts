@@ -1,5 +1,6 @@
-import type { BrainrotOwnedState, TargetState } from "../types";
+import type { BrainrotOwnedState, TargetState, WorldId } from "../types";
 import { Balance } from "../config/balance";
+import { FIRST_WORLD_ID } from "../config/worlds";
 
 /**
  * The entire mutable game state. Designed to be a plain serializable object so
@@ -10,7 +11,15 @@ export interface GameState {
   version: number;
   gold: number;
   gems: number;
+
+  /** The world the player is currently in. */
+  worldId: WorldId;
+  /** Active stage in the current world (mirrors `worldStages[worldId]`). */
   stage: number;
+  /** Per-world stage progress, so each world keeps its own track. */
+  worldStages: Record<WorldId, number>;
+  /** Worlds the player has unlocked (the first world is always present). */
+  unlockedWorlds: WorldId[];
 
   /** Current chest/Lucky Block on screen. Null only before first spawn. */
   target: TargetState | null;
@@ -19,6 +28,9 @@ export interface GameState {
   chestsBrokenSinceLucky: number;
   totalChestsBroken: number;
   luckyBlocksBroken: number;
+
+  /** Seconds remaining before the next target spawns (0 when not waiting). */
+  respawnTimer: number;
 
   /** upgradeId -> owned level. */
   upgrades: Record<string, number>;
@@ -40,11 +52,15 @@ export function createInitialState(rngSeed: number): GameState {
     version: SAVE_VERSION,
     gold: Balance.startingGold,
     gems: Balance.startingGems,
+    worldId: FIRST_WORLD_ID,
     stage: Balance.startingStage,
+    worldStages: { castaway_cove: Balance.startingStage, grasslands: Balance.startingStage },
+    unlockedWorlds: [FIRST_WORLD_ID],
     target: null,
     chestsBrokenSinceLucky: 0,
     totalChestsBroken: 0,
     luckyBlocksBroken: 0,
+    respawnTimer: 0,
     upgrades: {},
     brainrots: {},
     discoveredItems: [],

@@ -3,6 +3,7 @@ import { SceneRenderer } from "../render/SceneRenderer";
 import { Ui } from "../ui/Ui";
 import { Layout } from "../ui/Layout";
 import { Juice } from "../fx/Juice";
+import { AudioSystem } from "../audio/AudioSystem";
 import { GameLoop } from "./GameLoop";
 import { installDebugApi } from "./debug";
 
@@ -24,9 +25,10 @@ export function bootstrap(): void {
   const core = new GameCore({ seed: resolveSeed() });
   const renderer = new SceneRenderer(canvas, core.bus);
 
-  // UI + FX are pure subscribers to the core's event bus.
+  // UI + FX + audio are pure subscribers to the core's event bus.
   new Ui(uiRoot, core, core.bus);
   const juice = new Juice(uiRoot, renderer, core.bus);
+  const audio = new AudioSystem(core.bus);
 
   const layout = new Layout(frame, (w, h) => renderer.resize(w, h));
   layout.apply();
@@ -35,10 +37,12 @@ export function bootstrap(): void {
   // elements capture their own clicks, so this only fires on the play area.
   canvas.addEventListener("pointerdown", (e) => {
     e.preventDefault();
+    // Browsers require a user gesture to start audio; safe to call repeatedly.
+    audio.unlock();
     core.tap();
   });
 
-  installDebugApi(core, juice);
+  installDebugApi(core, juice, audio);
 
   core.start();
   new GameLoop(core, renderer, juice).start();

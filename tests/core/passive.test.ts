@@ -29,4 +29,23 @@ describe("passive damage", () => {
       core.getSnapshot().totalChestsBroken + core.getSnapshot().luckyBlocksBroken;
     expect(breaksAfter).toBeGreaterThan(breaksBefore);
   });
+
+  it("batches passive damage into discrete ticks instead of every frame", () => {
+    const core = makeCore(8);
+    core.debugAddGold(1e6);
+    for (let i = 0; i < 5; i++) core.buyUpgrade("brainrot_training");
+    expect(core.getStats().passiveDps).toBe(5);
+
+    core.debugSpawnChest();
+    const start = core.getSnapshot().target!.health;
+
+    // Within a single tick interval (< 0.33s) no damage should land yet.
+    core.update(0.1);
+    core.update(0.1);
+    expect(core.getSnapshot().target!.health).toBe(start);
+
+    // Crossing the interval flushes a single batched hit.
+    core.update(0.2);
+    expect(core.getSnapshot().target!.health).toBeLessThan(start);
+  });
 });

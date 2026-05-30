@@ -15,7 +15,8 @@ export function totalBreaks(core: GameCore): number {
 
 /**
  * Destroy the current target deterministically. Uses the debug kill so it is
- * independent of tap damage vs. exponential health scaling.
+ * independent of tap damage vs. exponential health scaling, then skips the
+ * cosmetic respawn gap so a fresh target is immediately available.
  */
 export function breakCurrentTarget(core: GameCore): void {
   const before = totalBreaks(core);
@@ -23,4 +24,5 @@ export function breakCurrentTarget(core: GameCore): void {
   if (totalBreaks(core) === before) {
     throw new Error("target did not break");
   }
+  core.debugAdvanceRespawn();
 }

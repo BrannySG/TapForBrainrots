@@ -5,6 +5,7 @@ import { TargetLabel } from "./TargetLabel";
 import { HealthBar } from "./HealthBar";
 import { BottomNav, type NavTab } from "./BottomNav";
 import { ShopPanel } from "./ShopPanel";
+import { MapPanel } from "./MapPanel";
 import { Panel } from "./Panel";
 import { el } from "./dom";
 
@@ -19,6 +20,7 @@ const TAB_TITLES: Record<NavTab, string> = {
 /** Composition root for the DOM UI. Owns all HUD widgets and panels. */
 export class Ui {
   private readonly shop: ShopPanel;
+  private readonly map: MapPanel;
   private readonly placeholder: Panel;
 
   constructor(root: HTMLElement, core: GameCore, bus: EventBus) {
@@ -27,6 +29,7 @@ export class Ui {
     new HealthBar(root, core, bus);
 
     this.shop = new ShopPanel(root, core, bus);
+    this.map = new MapPanel(root, core, bus);
 
     this.placeholder = new Panel(root, "");
     this.placeholder.body.append(
@@ -39,6 +42,10 @@ export class Ui {
   private onNav(tab: NavTab): void {
     if (tab === "shop") {
       this.shop.open();
+      return;
+    }
+    if (tab === "map") {
+      this.map.open();
       return;
     }
     this.placeholder.setTitle(TAB_TITLES[tab]);

@@ -11,19 +11,22 @@ const RARITY_CSS: Record<Rarity, string> = {
   mythic: "var(--rarity-mythic)",
 };
 
-/** Stage + rarity + current target name, centered near the top (mockup style). */
+/** World + stage + rarity + current target name, centered near the top. */
 export class TargetLabel {
+  private readonly worldEl = el("div", "target-rarity");
   private readonly stageEl = el("div", "target-rarity");
   private readonly rarityEl = el("div", "target-rarity");
   private readonly nameEl = el("div", "target-name");
 
   constructor(parent: HTMLElement, core: GameCore, bus: EventBus) {
     const root = el("div", "target-label");
+    this.worldEl.style.color = "rgba(255,255,255,0.65)";
     this.stageEl.style.color = "rgba(255,255,255,0.8)";
-    root.append(this.stageEl, this.rarityEl, this.nameEl);
+    root.append(this.worldEl, this.stageEl, this.rarityEl, this.nameEl);
     parent.append(root);
 
     const snap = core.getSnapshot();
+    this.setWorld(snap.worldName);
     this.setStage(snap.stage);
     if (snap.target) this.setTarget(snap.target.rarity, snap.target.name);
 
@@ -31,6 +34,11 @@ export class TargetLabel {
       this.setTarget(target.rarity, target.name);
     });
     bus.on("stageChanged", ({ stage }) => this.setStage(stage));
+    bus.on("worldChanged", ({ name }) => this.setWorld(name));
+  }
+
+  private setWorld(name: string): void {
+    this.worldEl.textContent = name;
   }
 
   private setStage(stage: number): void {

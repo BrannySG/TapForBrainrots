@@ -27,9 +27,12 @@ export class HeroObject {
   private accent: THREE.MeshStandardMaterial;
 
   private idleTime = 0;
-  private punch = 0; // 0..1 squash energy, decays
+  private punch = 0; // 0..1 tap squash energy, decays fast (snappy)
+  private throb = 0; // 0..1 passive-hit swell energy, bigger + slower decay
   private spawnPop = 0; // 0..1, plays on spawn
-  private breaking = 0; // 0..1, plays on break
+  private broken = false; // true between a break and the next spawn
+  private breakProgress = 0; // 0..1, shrink-to-nothing on break
+  private breakSpin = 0; // extra spin (radians) added while breaking
 
   constructor() {
     this.root.add(this.pivot);
@@ -61,8 +64,11 @@ export class HeroObject {
     this.accent.emissive.setHex(RARITY_COLOR[rarity]);
     this.accent.emissiveIntensity = kind === "lucky" ? 0.35 : 0.15;
     this.spawnPop = 1;
-    this.breaking = 0;
+    this.broken = false;
+    this.breakProgress = 0;
+    this.breakSpin = 0;
     this.punch = 0;
+    this.throb = 0;
   }
 
   private show(object: THREE.Object3D): void {
@@ -72,14 +78,29 @@ export class HeroObject {
     this.pivot.add(object);
   }
 
-  /** Trigger a hit squash (called by the FX layer). */
+  /** Trigger a snappy tap squash (called by the FX layer). */
   hit(strength = 1): void {
     this.punch = Math.min(1, this.punch + 0.6 * strength);
   }
 
-  /** Trigger the break shrink (called by the FX layer). */
+  /**
+   * Trigger a dramatic passive-damage swell. Distinct from `hit`: a bigger,
+   * slower pulse so the now-batched passive ticks read as a clear throb instead
+   * of a per-frame vibration.
+   */
+  throbPulse(strength = 1): void {
+    this.throb = Math.min(1, this.throb + strength);
+  }
+
+  /**
+   * Trigger the break: the object shrinks to nothing (with a quick spin) and
+   * stays hidden until `setTarget` spawns the next one. The respawn gap is
+   * driven by the game core, so the chest is genuinely gone in between.
+   */
   playBreak(): void {
-    this.breaking = 1;
+    this.broken = true;
+    this.breakProgress = 0;
+    this.breakSpin = 0;
   }
 
   update(dt: number): void {
@@ -88,20 +109,31 @@ export class HeroObject {
     // Idle bob + slow spin.
     const bob = Math.sin(this.idleTime * 1.8) * 0.06;
     this.root.position.y = bob;
-    this.root.rotation.y = Math.sin(this.idleTime * 0.6) * 0.25;
 
-    // Punch decays toward 0.
+    // Tap punch decays fast for a snappy response.
     this.punch = Math.max(0, this.punch - dt * 4);
+    // Passive throb is bigger and decays slower so each batched tick reads as
+    // a full swell within its ~0.33s interval.
+    this.throb = Math.max(0, this.throb - dt * 3.2);
     // Spawn pop eases out.
     this.spawnPop = Math.max(0, this.spawnPop - dt * 3);
-    // Break shrink eases out (and re-grows on next spawn via spawnPop).
-    this.breaking = Math.max(0, this.breaking - dt * 5);
+
+    // Break shrink: ramp 0 -> 1 over ~0.25s and hold, with an accelerating spin.
+    let breakScale = 1;
+    if (this.broken) {
+      this.breakProgress = Math.min(1, this.breakProgress + dt * 4.5);
+      this.breakSpin += dt * (6 + this.breakProgress * 10);
+      const eased = 1 - Math.pow(1 - this.breakProgress, 3); // easeOutCubic
+      breakScale = 1 - eased;
+    }
+    this.root.rotation.y = Math.sin(this.idleTime * 0.6) * 0.25 + this.breakSpin;
 
     const squash = 1 - this.punch * 0.18;
     const stretch = 1 + this.punch * 0.12;
+    // Dramatic uniform swell for passive hits (grow then settle).
+    const throbScale = 1 + this.throb * 0.24;
     const spawnScale = 1 - this.spawnPop * 0.4;
-    const breakScale = 1 - this.breaking * 0.6;
-    const s = spawnScale * breakScale;
+    const s = spawnScale * breakScale * throbScale;
 
     this.pivot.scale.set(squash * s, stretch * s, squash * s);
   }
@@ -135,7 +167,8 @@ export class HeroObject {
     latch.position.set(0, 0.18, 0.55);
     group.add(latch);
 
-    normalizeToUnitSize(group, 2.0);
+    // Chest reads slightly smaller than a Lucky Block (2.2) per V0 feedback.
+    normalizeToUnitSize(group, 1.7);
     return group;
   }
 }

@@ -18,6 +18,9 @@ export const RARITY_ORDER: Rarity[] = [
 
 export type TargetKind = "chest" | "lucky";
 
+/** Identifier for a themed world / loot zone. */
+export type WorldId = "castaway_cove" | "grasslands";
+
 /** The thing currently on screen being attacked. */
 export interface TargetState {
   kind: TargetKind;

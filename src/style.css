@@ -1,6 +1,9 @@
 :root {
   --bg-outer: #0b0d12;
-  --bg-game: #2f7bf6;
+  /* Vertical sky gradient for the play field (lighter top -> deeper bottom). */
+  --bg-game-top: #5aa6ff;
+  --bg-game-bottom: #1f56cc;
+  --bg-game: linear-gradient(180deg, var(--bg-game-top) 0%, var(--bg-game-bottom) 100%);
   --hud-pill: rgba(20, 28, 48, 0.55);
   --hud-stroke: rgba(255, 255, 255, 0.12);
   --text: #ffffff;
@@ -387,6 +390,63 @@ body {
   100% {
     opacity: 0;
     transform: translate(-50%, -160%) scale(1);
+  }
+}
+
+/* ---- Loot sell FX: item burst + coins ---- */
+/* Motion is driven by the Web Animations API in Juice.ts; these rules only
+   cover layout + the rarity glow so there is no conflicting CSS keyframe. */
+.fx-item {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--frame-unit) * 1);
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.fx-item img {
+  width: calc(var(--frame-unit) * 20);
+  height: calc(var(--frame-unit) * 20);
+  object-fit: contain;
+  filter: drop-shadow(0 0 calc(var(--frame-unit) * 3.5) var(--glow, #fff))
+    drop-shadow(0 calc(var(--frame-unit) * 0.6) 0 rgba(0, 0, 0, 0.4));
+}
+
+.fx-item-value {
+  font-weight: 900;
+  font-size: calc(var(--frame-unit) * 5.2);
+  text-shadow: 0 calc(var(--frame-unit) * 0.4) 0 rgba(0, 0, 0, 0.55);
+}
+
+.fx-coin {
+  position: absolute;
+  width: calc(var(--frame-unit) * 7);
+  height: calc(var(--frame-unit) * 7);
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 0 calc(var(--frame-unit) * 2) #ffd54a)
+    drop-shadow(0 calc(var(--frame-unit) * 0.4) 0 rgba(0, 0, 0, 0.35));
+  will-change: transform, opacity;
+}
+
+/* Gold pill pulse as coins land. */
+.hud-gold.bump {
+  animation: hud-gold-bump 260ms ease-out;
+}
+
+@keyframes hud-gold-bump {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.14);
+    filter: brightness(1.25);
+  }
+  100% {
+    transform: scale(1);
   }
 }
 

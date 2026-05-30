@@ -24,9 +24,9 @@ The core fantasy is:
 
 ### Early Game
 
-The player starts in World 1 with basic tap damage and a simple chest.
+The player starts in World 1 (**Castaway Cove**, a nautical/pirate beach theme) with basic tap damage and a simple chest.
 
-They tap the chest until it breaks. The chest opens and reveals an item, such as a **Common Fishing Rod**, which is immediately auto-sold for gold.
+They tap the chest until it breaks. The chest opens and reveals 1-2 items, such as an **Old Boot** or a **Seashell**, which pop out on screen and are immediately auto-sold: each item bursts into gold coins that fly up to the gold counter and accumulate.
 
 The player uses gold to buy simple upgrades:
 
@@ -60,7 +60,7 @@ The player unlocks new worlds by reaching stage milestones. Each world has uniqu
 Example:
 
 * World 1: Starter Brainrots.
-* World 2: Radioactive Wasteland Brainrots.
+* World 2: Grasslands Brainrots.
 * World 3: Frozen Brainrots.
 
 Players can continue pushing endlessly in earlier worlds, but newer worlds scale harder and offer better or different rewards.
@@ -74,8 +74,8 @@ The long-term goal is to build a powerful collection of Brainrots, cards, discov
 1. Player taps chest.
 2. Chest takes damage.
 3. Chest breaks.
-4. Chest reveals an item.
-5. Item auto-sells for gold.
+4. Chest reveals 1-2 items that pop out on screen.
+5. Items burst into gold coins that fly to the counter and auto-sell for gold.
 6. Gold is spent on upgrades and packs.
 7. Player progresses through stages.
 8. Lucky Blocks occasionally spawn instead of chests.
@@ -89,7 +89,8 @@ The long-term goal is to build a powerful collection of Brainrots, cards, discov
 ### Simple Loop Example
 
 * Break chest.
-* Find **Common Fishing Rod**.
+* Find **Common Old Boot** (and sometimes a second item).
+* Items pop out and burst into coins that fly to the gold counter.
 * Auto-sell for **5 Gold**.
 * Buy +1 Tap Damage.
 * Break more chests.
@@ -147,8 +148,8 @@ They function as the basic source of gold and item discovery.
 * Player taps to damage it.
 * Passive damage from Brainrots also damages it over time.
 * When health reaches 0, the chest opens.
-* It reveals one loot item.
-* The item is automatically sold for gold.
+* It reveals 1-2 loot items that pop out on screen.
+* Each item is automatically sold: it bursts into gold coins that fly to the gold counter and accumulate.
 * A new chest or Lucky Block spawns.
 
 ### Chest Rewards
@@ -163,14 +164,18 @@ Instead of:
 
 > “I got 5 gold.”
 
-### Example Chest Loot
+### Example Chest Loot (World 1 - Castaway Cove)
 
-| Item               | Rarity | Sell Value | Collection Status |
-| ------------------ | -----: | ---------: | ----------------- |
-| Fishing Rod        | Common |     5 Gold | Discovered        |
-| Rusty Spoon        | Common |     6 Gold | Discovered        |
-| Golden Toilet Roll |   Rare |    45 Gold | New Discovery     |
-| Meme Crown         |   Epic |   250 Gold | New Discovery     |
+| Item         |    Rarity | Stage-1 Value | Collection Status |
+| ------------ | --------: | ------------: | ----------------- |
+| Old Boot     |    Common |        5 Gold | Discovered        |
+| Seashell     |    Common |       10 Gold | Discovered        |
+| Fishing Rod  |      Rare |       55 Gold | New Discovery     |
+| Pirate Hat   |      Epic |      360 Gold | New Discovery     |
+| Cutlass      | Legendary |     1300 Gold | New Discovery     |
+| Treasure Map |    Mythic |     9000 Gold | New Discovery     |
+
+Sell value shown is the stage-1 base; the final price scales with the current stage and the player's gold multiplier.
 
 ---
 
@@ -448,7 +453,7 @@ Opening packs gives the player Brainrot Cards.
 | -------------- | --------------- | ----------------------------------- |
 | Starter Pack   | Stage 10        | 3 basic cards, mostly Common        |
 | World 1 Pack   | World 1 Shop    | Cards for World 1 Brainrots         |
-| Wasteland Pack | World 2         | Higher chance for Radioactive cards |
+| Grasslands Pack | World 2        | Higher chance for Grasslands cards  |
 | Epic Pack      | Milestone/Event | Guaranteed Rare+ card               |
 
 ---
@@ -526,9 +531,14 @@ Worlds are themed progression areas with unique loot, Brainrots, and modifiers.
 
 | World   |            Unlock | Theme                 | Special Reward Angle                    |
 | ------- | ----------------: | --------------------- | --------------------------------------- |
-| World 1 |             Start | Meme Meadow           | Starter Brainrots and basic items       |
-| World 2 |  Stage 50 World 1 | Radioactive Wasteland | Higher chance for Radioactive Brainrots |
+| World 1 |             Start | Castaway Cove         | Starter Brainrots and nautical loot     |
+| World 2 |  Stage 50 World 1 | Grasslands            | Verdant meadows & woods; nature loot    |
 | World 3 | Stage 100 World 2 | Frozen Brainrot Zone  | Frozen modifiers and ice-themed cards   |
+
+> **Note:** Grasslands is World 2 (it replaces the previously planned
+> "Radioactive Wasteland" world). "Radioactive" is retained as a roaming
+> Brainrot **modifier** (see §16), not a dedicated world. Each world keeps its
+> own independent stage track.
 
 ---
 
@@ -542,7 +552,7 @@ They create collection depth and world-specific farming goals.
 
 | Modifier    | Theme               | Effect Example                               |
 | ----------- | ------------------- | -------------------------------------------- |
-| Radioactive | Wasteland           | Multiplied passive damage                    |
+| Radioactive | Hazard zones        | Multiplied passive damage                    |
 | Frozen      | Ice World           | Slows chest decay timer or boosts idle gains |
 | Golden      | Rare Global Variant | Increased gold multiplier                    |
 | Glitched    | Late Game           | Bonus pack luck or duplicate value           |
@@ -556,7 +566,7 @@ They create collection depth and world-specific farming goals.
 
 ### Example
 
-In Radioactive Wasteland:
+In a Radioactive-modifier zone:
 
 * Goblin Guy can drop normally.
 * Goblin Guy has a higher chance to appear as **Radioactive Goblin Guy**.
@@ -697,9 +707,9 @@ The game should communicate rewards clearly and frequently.
 ### Chest Reward Feedback
 
 * Chest breaks.
-* Item pops out.
-* Item name and rarity appear.
-* Item auto-sells into gold.
+* 1-2 items pop out on screen with a rarity-coloured glow and their sell value.
+* Each item bursts into gold coins that arc up to the gold counter.
+* The gold counter pulses and visibly counts up as the coins land (accumulation feel).
 * If new, show “New Discovery!”
 
 ### Lucky Block Feedback
@@ -772,9 +782,9 @@ Players should care where they play because worlds affect rewards, modifiers, an
 
 1. Player is on Stage 12 in World 1.
 2. They break a Common Chest.
-3. It drops **Rusty Spoon**.
-4. Rusty Spoon auto-sells for **7 Gold**.
-5. It is a new item, so it is added to the Item Collection Book.
+3. It drops a **Seashell** (and sometimes a second item).
+4. The items pop out and burst into coins that fly to the gold counter, auto-selling for gold.
+5. Each new item is added to the Item Collection Book.
 6. Player buys **+1 Tap Damage**.
 7. After a few more chests, a Lucky Block appears.
 8. Lucky Block has 2× normal chest health.

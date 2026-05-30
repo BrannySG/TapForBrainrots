@@ -1,5 +1,7 @@
 import type { GameCore } from "../core/GameCore";
 import type { Juice } from "../fx/Juice";
+import type { AudioSystem } from "../audio/AudioSystem";
+import type { WorldId } from "../core/types";
 
 /**
  * Exposes `window.__GAME` so automated tooling (the Cursor Browser tool / CDP)
@@ -14,9 +16,13 @@ export interface DebugApi {
   spawnLucky: () => void;
   spawnChest: () => void;
   kill: () => void;
+  advanceRespawn: () => void;
   addGold: (amount: number) => void;
   fastForward: (seconds: number) => void;
   setFx: (enabled: boolean) => void;
+  setAudio: (enabled: boolean) => void;
+  worlds: () => ReturnType<GameCore["getWorlds"]>;
+  setWorld: (id: WorldId) => boolean;
   pity: number;
 }
 
@@ -26,7 +32,11 @@ declare global {
   }
 }
 
-export function installDebugApi(core: GameCore, juice: Juice): DebugApi {
+export function installDebugApi(
+  core: GameCore,
+  juice: Juice,
+  audio: AudioSystem
+): DebugApi {
   const api: DebugApi = {
     core,
     snapshot: () => core.getSnapshot(),
@@ -38,11 +48,18 @@ export function installDebugApi(core: GameCore, juice: Juice): DebugApi {
     spawnLucky: () => core.debugSpawnLucky(),
     spawnChest: () => core.debugSpawnChest(),
     kill: () => core.debugKillTarget(),
+    advanceRespawn: () => core.debugAdvanceRespawn(),
     addGold: (amount: number) => core.debugAddGold(amount),
     fastForward: (seconds: number) => core.debugFastForward(seconds),
     setFx: (enabled: boolean) => {
       juice.enabled = enabled;
     },
+    setAudio: (enabled: boolean) => {
+      audio.unlock();
+      audio.enabled = enabled;
+    },
+    worlds: () => core.getWorlds(),
+    setWorld: (id: WorldId) => core.switchWorld(id),
     pity: core.pityThreshold,
   };
   window.__GAME = api;

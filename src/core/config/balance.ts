@@ -12,6 +12,15 @@ export const Balance = {
   /** Base tap damage before upgrades. */
   baseTapDamage: 1,
 
+  passive: {
+    /**
+     * Seconds between discrete passive-damage hits. Passive DPS is accumulated
+     * and flushed as one batched hit per interval so it lands in clear, juicy
+     * pulses instead of vibrating the target every frame.
+     */
+    tickInterval: 0.33,
+  },
+
   chest: {
     baseHealth: 10,
     /** Multiplicative health growth per stage. */
@@ -32,6 +41,20 @@ export const Balance = {
     baseSellValue: 5,
     /** Multiplicative gold growth per stage. */
     sellGrowth: 1.12,
+  },
+
+  loot: {
+    /** Chance a broken chest drops a second item on top of the guaranteed one. */
+    secondItemChance: 0.45,
+  },
+
+  respawn: {
+    /**
+     * Cosmetic gap (seconds) after a target breaks before the next one spawns.
+     * Lets the break + loot burst be felt. Driven by `update(dt)` so it stays
+     * deterministic (no wall-clock).
+     */
+    delay: 1.0,
   },
 } as const;
 
@@ -62,4 +85,17 @@ export function baseSellValue(stage: number, rarity: Rarity): number {
   return Math.ceil(
     Balance.gold.baseSellValue * RARITY_SELL_MULTIPLIER[rarity] * stageScale
   );
+}
+
+/**
+ * Final sell value for a specific item: its per-item stage-1 `value` scaled by
+ * stage growth and the player's gold multiplier.
+ */
+export function itemSellValue(
+  stage: number,
+  value: number,
+  goldMultiplier: number
+): number {
+  const stageScale = Math.pow(Balance.gold.sellGrowth, stage - 1);
+  return Math.ceil(value * stageScale * goldMultiplier);
 }

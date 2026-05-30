@@ -1,4 +1,4 @@
-import type { Rarity, TargetKind, TargetState, DerivedStats } from "../types";
+import type { Rarity, TargetKind, TargetState, DerivedStats, WorldId } from "../types";
 
 /**
  * The full set of events the game core can emit. Presentation layers (render,
@@ -15,16 +15,25 @@ export interface GameEventMap {
   };
   targetBroken: { kind: TargetKind; rarity: Rarity; name: string };
   itemDropped: {
+    id: string;
     name: string;
     rarity: Rarity;
     sellValue: number;
     isNew: boolean;
+    /** Index of this item within the current break (0-based). */
+    index: number;
+    /** Total items dropped in the current break (1-2). */
+    count: number;
   };
   goldChanged: { gold: number; delta: number };
   gemsChanged: { gems: number; delta: number };
   upgradePurchased: { id: string; level: number; cost: number };
   upgradeFailed: { id: string; reason: "insufficient-gold" | "max-level" };
   stageChanged: { stage: number };
+  /** Player travelled to a different world; `stage` is the new world's stage. */
+  worldChanged: { worldId: WorldId; name: string; stage: number };
+  /** A new world became available to travel to. */
+  worldUnlocked: { worldId: WorldId; name: string };
   luckyReveal: {
     brainrotId: string;
     name: string;

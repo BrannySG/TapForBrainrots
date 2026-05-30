@@ -14,6 +14,8 @@ import {
   luckyHealthForStage,
 } from "./config/balance";
 import { UPGRADES_BY_ID, upgradeCost } from "./config/upgrades";
+import { WORLDS, WORLDS_BY_ID } from "./config/worlds";
+import type { WorldId } from "./types";
 
 export interface GameCoreOptions {
   seed?: number;
@@ -93,10 +95,45 @@ export class GameCore {
     return true;
   }
 
-  /** Advance passive damage. `dt` is seconds. */
+  /**
+   * Travel to a different (unlocked) world. Saves the current world's stage,
+   * restores the target world's stage, and spawns a fresh target there.
+   * Returns false if the world is unknown, already active, or still locked.
+   */
+  switchWorld(id: WorldId): boolean {
+    if (!WORLDS_BY_ID[id]) return false;
+    if (id === this.state.worldId) return false;
+    if (!this.state.unlockedWorlds.includes(id)) return false;
+
+    this.state.worldStages[this.state.worldId] = this.state.stage;
+    this.state.worldId = id;
+    this.state.stage = this.state.worldStages[id] ?? Balance.startingStage;
+
+    const def = WORLDS_BY_ID[id];
+    this.bus.emit("worldChanged", { worldId: id, name: def.name, stage: this.state.stage });
+    this.bus.emit("stageChanged", { stage: this.state.stage });
+
+    // Spawn a fresh target in the new world right away.
+    this.state.target = null;
+    this.state.respawnTimer = 0;
+    this.spawnNext();
+    return true;
+  }
+
+  /** Advance passive damage + the respawn timer. `dt` is seconds. */
   update(dt: number): void {
     if (dt <= 0) return;
+    this.tickRespawn(dt);
     this.passive.update(dt, this.stats.passiveDps, this.applyDamageBound);
+  }
+
+  private tickRespawn(dt: number): void {
+    if (this.state.respawnTimer <= 0) return;
+    this.state.respawnTimer -= dt;
+    if (this.state.respawnTimer <= 0) {
+      this.state.respawnTimer = 0;
+      this.spawnNext();
+    }
   }
 
   // ---- Internal flow ------------------------------------------------------
@@ -136,7 +173,10 @@ export class GameCore {
       this.recomputeStats();
     }
 
-    this.spawnNext();
+    // Clear the target and wait a beat so the break + loot burst can be felt;
+    // the next target spawns once `respawnTimer` elapses in `update`.
+    this.state.target = null;
+    this.state.respawnTimer = Balance.respawn.delay;
   }
 
   private spawnNext(): void {
@@ -165,6 +205,9 @@ export class GameCore {
     return {
       gold: this.state.gold,
       gems: this.state.gems,
+      worldId: this.state.worldId,
+      worldName: WORLDS_BY_ID[this.state.worldId].name,
+      unlockedWorlds: [...this.state.unlockedWorlds],
       stage: this.state.stage,
       target: this.state.target ? { ...this.state.target } : null,
       stats: { ...this.stats },
@@ -174,6 +217,39 @@ export class GameCore {
       ownedBrainrots,
       discoveredItems: this.state.discoveredItems.length,
     };
+  }
+
+  /** World list with travel/unlock status for the Map UI. */
+  getWorlds(): {
+    id: WorldId;
+    name: string;
+    theme: string;
+    stage: number;
+    unlocked: boolean;
+    current: boolean;
+    unlockHint?: string;
+  }[] {
+    return WORLDS.map((w) => {
+      const unlocked = this.state.unlockedWorlds.includes(w.id);
+      const stage =
+        w.id === this.state.worldId
+          ? this.state.stage
+          : this.state.worldStages[w.id] ?? Balance.startingStage;
+      let unlockHint: string | undefined;
+      if (!unlocked && w.unlock) {
+        const from = WORLDS_BY_ID[w.unlock.afterWorld];
+        unlockHint = `Reach Stage ${w.unlock.stage} in ${from.name}`;
+      }
+      return {
+        id: w.id,
+        name: w.name,
+        theme: w.theme,
+        stage,
+        unlocked,
+        current: w.id === this.state.worldId,
+        unlockHint,
+      };
+    });
   }
 
   getUpgradeCost(id: string): number | null {
@@ -199,6 +275,7 @@ export class GameCore {
       health: max,
     };
     this.state.chestsBrokenSinceLucky = 0;
+    this.state.respawnTimer = 0;
     this.bus.emit("targetSpawned", { target: this.state.target, isLucky: true });
   }
 
@@ -212,6 +289,7 @@ export class GameCore {
       maxHealth: max,
       health: max,
     };
+    this.state.respawnTimer = 0;
     this.bus.emit("targetSpawned", { target: this.state.target, isLucky: false });
   }
 
@@ -222,6 +300,17 @@ export class GameCore {
   /** Instantly destroy the current target (debug/testing); runs full break flow. */
   debugKillTarget(): void {
     if (this.state.target) this.applyDamage(this.state.target.health, false);
+  }
+
+  /**
+   * Skip the cosmetic respawn gap and spawn the next target immediately
+   * (debug/testing) so flows stay deterministic without simulating the delay.
+   */
+  debugAdvanceRespawn(): void {
+    if (this.state.respawnTimer > 0 || !this.state.target) {
+      this.state.respawnTimer = 0;
+      if (!this.state.target) this.spawnNext();
+    }
   }
 
   /** Run `seconds` of passive simulation in fixed steps (debug/testing). */
