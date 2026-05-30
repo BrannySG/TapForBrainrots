@@ -2,11 +2,11 @@ import { describe, it, expect } from "vitest";
 import { makeCore, breakCurrentTarget } from "../helpers";
 
 describe("lucky blocks & brainrots", () => {
-  it("starts a fresh run with a chest, not a lucky block", () => {
+  it("starts a fresh run with an enemy, not a lucky block", () => {
     // Seed 7 would roll a lucky spawn on the first RNG check without the
     // first-spawn guard, so this catches regressions deterministically.
     const core = makeCore(7);
-    expect(core.getSnapshot().target?.kind).toBe("chest");
+    expect(core.getSnapshot().target?.kind).toBe("enemy");
   });
 
   it("never exceeds the pity threshold without a lucky block", () => {
@@ -18,11 +18,13 @@ describe("lucky blocks & brainrots", () => {
       breakCurrentTarget(core);
       maxSinceLucky = Math.max(
         maxSinceLucky,
-        core.getSnapshot().chestsBrokenSinceLucky
+        core.getSnapshot().killsSinceLucky
       );
     }
 
-    expect(maxSinceLucky).toBeLessThan(pity);
+    // Pity can briefly sit at the threshold when the forced spawn lands on a
+    // boss stage (Lucky Blocks never replace a boss), so allow equality.
+    expect(maxSinceLucky).toBeLessThanOrEqual(pity);
     expect(core.getSnapshot().luckyBlocksBroken).toBeGreaterThan(0);
   });
 

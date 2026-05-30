@@ -10,9 +10,12 @@ import { BrainrotSystem } from "./systems/BrainrotSystem";
 import { PassiveSystem } from "./systems/PassiveSystem";
 import {
   Balance,
-  chestHealthForStage,
+  bossHealthForStage,
+  enemyHealthForStage,
+  isBossStage,
   luckyHealthForStage,
 } from "./config/balance";
+import { ENEMIES } from "./config/enemies";
 import { UPGRADES_BY_ID, upgradeCost } from "./config/upgrades";
 import { WORLDS, WORLDS_BY_ID } from "./config/worlds";
 import type { WorldId } from "./types";
@@ -46,6 +49,10 @@ export class GameCore {
   private readonly applyDamageBound = (amount: number, isTap: boolean) =>
     this.applyDamage(amount, isTap);
 
+  // Last tenth-of-a-second value broadcast on `bossTick`, so the countdown is
+  // emitted ~10/s instead of every frame.
+  private lastBossTenth = -1;
+
   constructor(opts: GameCoreOptions = {}) {
     const seed = opts.seed ?? DEFAULT_SEED;
     this.rng = new Rng(seed);
@@ -53,7 +60,7 @@ export class GameCore {
 
     this.statsSystem = new StatsSystem(this.state);
     this.spawn = new SpawnSystem(this.state, this.rng);
-    this.economy = new EconomySystem(this.state, this.rng, this.bus);
+    this.economy = new EconomySystem(this.state, this.bus);
     this.progression = new ProgressionSystem(this.state, this.bus);
     this.brainrot = new BrainrotSystem(this.state, this.rng, this.bus);
     this.passive = new PassiveSystem();
@@ -108,6 +115,11 @@ export class GameCore {
     this.state.worldStages[this.state.worldId] = this.state.stage;
     this.state.worldId = id;
     this.state.stage = this.state.worldStages[id] ?? Balance.startingStage;
+    // Stage objective + boss/fail state are per active world; reset on travel.
+    this.state.stageKills = 0;
+    this.state.bossTimer = 0;
+    this.state.failedBossStage = null;
+    this.lastBossTenth = -1;
 
     const def = WORLDS_BY_ID[id];
     this.bus.emit("worldChanged", { worldId: id, name: def.name, stage: this.state.stage });
@@ -120,14 +132,49 @@ export class GameCore {
     return true;
   }
 
-  /** Advance passive damage + the respawn timer. `dt` is seconds. */
+  /** Advance the boss timer, passive damage, and the respawn timer. `dt` is seconds. */
   update(dt: number): void {
     if (dt <= 0) return;
     // A pending Lucky Block reveal freezes the whole sim (no passive damage,
     // no respawn) so the summon takeover plays uninterrupted behind the overlay.
     if (this.state.revealPending) return;
+    this.tickBoss(dt);
     this.tickRespawn(dt);
     this.passive.update(dt, this.stats.passiveDps, this.applyDamageBound);
+  }
+
+  /** Toggle auto-progress. Turning it on clears a pending normal stage immediately. */
+  setAutoProgress(on: boolean): void {
+    if (this.state.autoProgress === on) return;
+    this.state.autoProgress = on;
+    this.bus.emit("autoProgressChanged", { on });
+    if (on && this.progression.tryAdvanceNormal()) {
+      this.state.target = null;
+      this.state.respawnTimer = 0;
+      this.spawnNext();
+    }
+  }
+
+  /**
+   * Re-enter the boss stage the player last failed and spawn a fresh boss with a
+   * full timer. Returns false if there is no failed boss to retry.
+   */
+  retryBoss(): boolean {
+    const stage = this.state.failedBossStage;
+    if (stage == null) return false;
+    this.state.stage = stage;
+    this.state.worldStages[this.state.worldId] = stage;
+    this.state.stageKills = 0;
+    this.state.target = null;
+    this.state.respawnTimer = 0;
+    this.bus.emit("stageChanged", { stage });
+    this.bus.emit("stageEntered", {
+      stage,
+      worldName: WORLDS_BY_ID[this.state.worldId].name,
+      isBoss: true,
+    });
+    this.spawnNext();
+    return true;
   }
 
   /**
@@ -138,7 +185,40 @@ export class GameCore {
   resolveReveal(): void {
     if (!this.state.revealPending) return;
     this.state.revealPending = false;
+    // The Lucky Block counted as a stage kill; if it cleared the stage, advance
+    // now that the reveal is done so the next spawn lands on the new stage.
+    this.progression.tryAdvanceNormal();
     this.state.respawnTimer = Balance.respawn.delay;
+  }
+
+  /** Count down the active boss timer; a fail drops the player back a stage. */
+  private tickBoss(dt: number): void {
+    const target = this.state.target;
+    if (!target || !target.isBoss || this.state.bossTimer <= 0) return;
+
+    this.state.bossTimer -= dt;
+    if (this.state.bossTimer <= 0) {
+      this.state.bossTimer = 0;
+      this.state.target = null;
+      this.lastBossTenth = -1;
+      this.bus.emit("bossTick", { remaining: 0, total: Balance.stage.bossTimer });
+      this.progression.bossFailed();
+      // Spawn the previous (farming) stage's enemy after the usual gap.
+      this.state.respawnTimer = Balance.respawn.delay;
+      return;
+    }
+    this.maybeEmitBossTick();
+  }
+
+  /** Broadcast the boss countdown at ~10/s (when the displayed tenth changes). */
+  private maybeEmitBossTick(): void {
+    const tenth = Math.ceil(this.state.bossTimer * 10);
+    if (tenth === this.lastBossTenth) return;
+    this.lastBossTenth = tenth;
+    this.bus.emit("bossTick", {
+      remaining: this.state.bossTimer,
+      total: Balance.stage.bossTimer,
+    });
   }
 
   private tickRespawn(dt: number): void {
@@ -177,16 +257,32 @@ export class GameCore {
 
     this.state.target = null;
 
-    if (target.kind === "chest") {
-      this.economy.dropAndSell(target.rarity, this.stats.goldMultiplier);
-      this.state.totalChestsBroken += 1;
-      this.state.chestsBrokenSinceLucky += 1;
-      this.progression.advanceStage();
-      // Wait a beat so the break + loot burst can be felt; the next target
-      // spawns once `respawnTimer` elapses in `update`.
+    if (target.kind === "enemy") {
+      this.state.enemiesDefeated += 1;
+      this.progression.registerKill();
+
+      if (target.isBoss) {
+        // Boss kills are not part of the Lucky Block pity stream (Lucky Blocks
+        // never spawn on boss stages), so they don't bump `killsSinceLucky`.
+        const gold = this.economy.awardKillGold(this.stats.goldMultiplier, true);
+        this.state.bossTimer = 0;
+        this.lastBossTenth = -1;
+        this.bus.emit("bossDefeated", { stage: this.state.stage, gold });
+        this.progression.bossSucceeded();
+      } else {
+        this.state.killsSinceLucky += 1;
+        this.economy.awardKillGold(this.stats.goldMultiplier);
+        this.progression.tryAdvanceNormal();
+      }
+
+      // Wait a beat so the death frame + coin burst can be felt; the next
+      // target spawns once `respawnTimer` elapses in `update`.
       this.state.respawnTimer = Balance.respawn.delay;
     } else {
       this.state.luckyBlocksBroken += 1;
+      // A Lucky Block counts as a stage kill; the advance check happens once the
+      // reveal resolves (see `resolveReveal`).
+      this.progression.registerKill();
       this.brainrot.grantReward(target.rarity);
       // Brainrot ownership changed -> stats must refresh.
       this.recomputeStats();
@@ -198,7 +294,13 @@ export class GameCore {
 
   private spawnNext(): void {
     const { target, isLucky } = this.spawn.spawnNext(this.stats.luckyChance);
+    if (target.isBoss) {
+      this.state.bossTimer = Balance.stage.bossTimer;
+      this.lastBossTenth = -1;
+    }
     this.bus.emit("targetSpawned", { target, isLucky });
+    this.progression.emitProgress();
+    if (target.isBoss) this.maybeEmitBossTick();
   }
 
   private recomputeStats(): void {
@@ -229,9 +331,15 @@ export class GameCore {
       target: this.state.target ? { ...this.state.target } : null,
       revealPending: this.state.revealPending,
       stats: { ...this.stats },
-      totalChestsBroken: this.state.totalChestsBroken,
+      enemiesDefeated: this.state.enemiesDefeated,
       luckyBlocksBroken: this.state.luckyBlocksBroken,
-      chestsBrokenSinceLucky: this.state.chestsBrokenSinceLucky,
+      killsSinceLucky: this.state.killsSinceLucky,
+      stageKills: this.state.stageKills,
+      stageRequired: this.progression.required,
+      isBossStage: isBossStage(this.state.stage),
+      bossTimer: this.state.bossTimer,
+      autoProgress: this.state.autoProgress,
+      failedBossStage: this.state.failedBossStage,
       ownedBrainrots,
       discoveredItems: this.state.discoveredItems.length,
     };
@@ -292,23 +400,47 @@ export class GameCore {
       maxHealth: max,
       health: max,
     };
-    this.state.chestsBrokenSinceLucky = 0;
+    this.state.killsSinceLucky = 0;
     this.state.respawnTimer = 0;
     this.bus.emit("targetSpawned", { target: this.state.target, isLucky: true });
   }
 
-  /** Force a normal chest at the current stage (debug/testing). */
-  debugSpawnChest(): void {
-    const max = chestHealthForStage(this.state.stage);
+  /** Force a normal enemy at the current stage (debug/testing). */
+  debugSpawnEnemy(): void {
+    const max = enemyHealthForStage(this.state.stage);
+    const enemy = ENEMIES[0];
     this.state.target = {
-      kind: "chest",
+      kind: "enemy",
       rarity: "common",
-      name: "Chest",
+      name: enemy.name,
       maxHealth: max,
       health: max,
+      enemyId: enemy.id,
     };
     this.state.respawnTimer = 0;
     this.bus.emit("targetSpawned", { target: this.state.target, isLucky: false });
+    this.progression.emitProgress();
+  }
+
+  /** Force a boss enemy at the current stage with a full timer (debug/testing). */
+  debugSpawnBoss(): void {
+    const max = bossHealthForStage(this.state.stage);
+    const enemy = ENEMIES[0];
+    this.state.target = {
+      kind: "enemy",
+      rarity: "legendary",
+      name: enemy.name,
+      maxHealth: max,
+      health: max,
+      enemyId: enemy.id,
+      isBoss: true,
+    };
+    this.state.respawnTimer = 0;
+    this.state.bossTimer = Balance.stage.bossTimer;
+    this.lastBossTenth = -1;
+    this.bus.emit("targetSpawned", { target: this.state.target, isLucky: false });
+    this.progression.emitProgress();
+    this.maybeEmitBossTick();
   }
 
   debugAddGold(amount: number): void {

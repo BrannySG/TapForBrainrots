@@ -22,10 +22,11 @@ export class TargetLabel {
     parent.append(this.root);
 
     const snap = core.getSnapshot();
-    if (snap.target) this.setTarget(snap.target.rarity, snap.target.name);
+    if (snap.target)
+      this.setTarget(snap.target.rarity, snap.target.name, snap.target.isBoss);
 
     bus.on("targetSpawned", ({ target }) => {
-      this.setTarget(target.rarity, target.name);
+      this.setTarget(target.rarity, target.name, target.isBoss);
       this.setVisible(true);
     });
     // Hide the rarity/title while the chest is broken + respawning so the
@@ -37,9 +38,10 @@ export class TargetLabel {
     this.root.style.visibility = visible ? "visible" : "hidden";
   }
 
-  private setTarget(rarity: Rarity, name: string): void {
-    this.rarityEl.textContent = rarity;
-    this.rarityEl.style.color = RARITY_CSS[rarity];
+  private setTarget(rarity: Rarity, name: string, isBoss = false): void {
+    // Bosses show a "BOSS" tag (in the legendary colour) instead of the rarity.
+    this.rarityEl.textContent = isBoss ? "BOSS" : rarity;
+    this.rarityEl.style.color = isBoss ? RARITY_CSS.legendary : RARITY_CSS[rarity];
     this.nameEl.textContent = name;
   }
 }

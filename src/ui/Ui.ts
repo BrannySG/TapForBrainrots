@@ -2,6 +2,7 @@ import type { GameCore } from "../core/GameCore";
 import type { EventBus } from "../core/events/EventBus";
 import { Hud } from "./Hud";
 import { TargetLabel } from "./TargetLabel";
+import { StageHud } from "./StageHud";
 import { HealthBar } from "./HealthBar";
 import { BottomNav, type NavTab } from "./BottomNav";
 import { ShopPanel } from "./ShopPanel";
@@ -26,6 +27,7 @@ export class Ui {
   constructor(root: HTMLElement, core: GameCore, bus: EventBus) {
     new Hud(root, core, bus);
     new TargetLabel(root, core, bus);
+    new StageHud(root, core, bus);
     new HealthBar(root, core, bus);
 
     this.shop = new ShopPanel(root, core, bus);

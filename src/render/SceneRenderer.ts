@@ -45,7 +45,7 @@ export class SceneRenderer {
     this.scene.add(this.hero.root);
 
     bus.on("targetSpawned", ({ target }) => {
-      this.hero.setTarget(target.kind, target.rarity);
+      this.hero.setTarget(target.kind, target.rarity, target.enemyId, target.isBoss);
     });
   }
 

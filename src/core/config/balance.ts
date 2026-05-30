@@ -21,18 +21,33 @@ export const Balance = {
     tickInterval: 0.33,
   },
 
-  chest: {
+  enemy: {
     baseHealth: 10,
     /** Multiplicative health growth per stage. */
     healthGrowth: 1.13,
+    /** Base gold awarded for a kill at stage 1 (before stage + gold multiplier). */
+    baseKillGold: 5,
+  },
+
+  stage: {
+    /** Enemies the player must defeat to clear a normal stage. */
+    killsPerStage: 10,
+    /** Every Nth stage is a boss stage (stage % bossEvery === 0). */
+    bossEvery: 5,
+    /** Seconds on the clock for a boss DPS check. */
+    bossTimer: 30,
+    /** Boss health = normal enemy health at the stage * this. */
+    bossHealthMultiplier: 10,
+    /** Boss kill gold = normal kill gold * this. */
+    bossGoldMultiplier: 8,
   },
 
   lucky: {
-    /** Base per-chest chance to spawn a Lucky Block instead of a chest. */
+    /** Base per-kill chance to spawn a Lucky Block instead of an enemy. */
     baseChance: 0.05,
-    /** Guaranteed Lucky Block after this many chests without one. */
+    /** Guaranteed Lucky Block after this many kills without one. */
     pity: 25,
-    /** Lucky Block health = chest health at current stage * this. */
+    /** Lucky Block health = enemy health at current stage * this. */
     healthMultiplier: 2,
   },
 
@@ -51,23 +66,51 @@ export const Balance = {
   respawn: {
     /**
      * Cosmetic gap (seconds) after a target breaks before the next one spawns.
-     * Lets the break + loot burst be felt. Driven by `update(dt)` so it stays
-     * deterministic (no wall-clock).
+     * Lets the death frame + coin burst be felt before the shrink. Driven by
+     * `update(dt)` so it stays deterministic (no wall-clock).
      */
-    delay: 1.0,
+    delay: 1.4,
   },
 } as const;
 
-/** Chest health for a given stage. */
-export function chestHealthForStage(stage: number): number {
+/** Enemy health for a given stage. */
+export function enemyHealthForStage(stage: number): number {
   return Math.ceil(
-    Balance.chest.baseHealth * Math.pow(Balance.chest.healthGrowth, stage - 1)
+    Balance.enemy.baseHealth * Math.pow(Balance.enemy.healthGrowth, stage - 1)
   );
 }
 
 /** Lucky Block health for a given stage. */
 export function luckyHealthForStage(stage: number): number {
-  return Math.ceil(chestHealthForStage(stage) * Balance.lucky.healthMultiplier);
+  return Math.ceil(enemyHealthForStage(stage) * Balance.lucky.healthMultiplier);
+}
+
+/** True when the given stage is a boss stage (every Nth stage). */
+export function isBossStage(stage: number): boolean {
+  return stage % Balance.stage.bossEvery === 0;
+}
+
+/** Boss health for a given stage (a multiple of the normal enemy health). */
+export function bossHealthForStage(stage: number): number {
+  return Math.ceil(
+    enemyHealthForStage(stage) * Balance.stage.bossHealthMultiplier
+  );
+}
+
+/**
+ * Gold awarded for defeating an enemy at a stage, scaled by stage growth and
+ * the player's gold multiplier.
+ */
+export function goldForKill(stage: number, goldMultiplier: number): number {
+  const stageScale = Math.pow(Balance.gold.sellGrowth, stage - 1);
+  return Math.ceil(Balance.enemy.baseKillGold * stageScale * goldMultiplier);
+}
+
+/** Gold awarded for defeating a boss (a multiple of the normal kill gold). */
+export function bossGoldForKill(stage: number, goldMultiplier: number): number {
+  return Math.ceil(
+    goldForKill(stage, goldMultiplier) * Balance.stage.bossGoldMultiplier
+  );
 }
 
 /** Sell-value multiplier applied per rarity tier. */

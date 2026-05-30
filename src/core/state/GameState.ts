@@ -21,13 +21,22 @@ export interface GameState {
   /** Worlds the player has unlocked (the first world is always present). */
   unlockedWorlds: WorldId[];
 
-  /** Current chest/Lucky Block on screen. Null only before first spawn. */
+  /** Current enemy/Lucky Block on screen. Null only before first spawn. */
   target: TargetState | null;
 
   /** Pity tracking for Lucky Block spawns. */
-  chestsBrokenSinceLucky: number;
-  totalChestsBroken: number;
+  killsSinceLucky: number;
+  enemiesDefeated: number;
   luckyBlocksBroken: number;
+
+  /** Kills banked toward clearing the current stage (resets on stage change). */
+  stageKills: number;
+  /** When true, clearing a stage auto-advances; when false, the player farms. */
+  autoProgress: boolean;
+  /** Seconds left on the active boss DPS check (0 when no boss is live). */
+  bossTimer: number;
+  /** The boss stage the player last failed (for Retry Boss); null when none. */
+  failedBossStage: number | null;
 
   /** Seconds remaining before the next target spawns (0 when not waiting). */
   respawnTimer: number;
@@ -64,9 +73,13 @@ export function createInitialState(rngSeed: number): GameState {
     worldStages: { castaway_cove: Balance.startingStage, grasslands: Balance.startingStage },
     unlockedWorlds: [FIRST_WORLD_ID],
     target: null,
-    chestsBrokenSinceLucky: 0,
-    totalChestsBroken: 0,
+    killsSinceLucky: 0,
+    enemiesDefeated: 0,
     luckyBlocksBroken: 0,
+    stageKills: 0,
+    autoProgress: true,
+    bossTimer: 0,
+    failedBossStage: null,
     respawnTimer: 0,
     revealPending: false,
     upgrades: {},

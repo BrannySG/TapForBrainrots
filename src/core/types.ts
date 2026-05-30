@@ -16,7 +16,7 @@ export const RARITY_ORDER: Rarity[] = [
   "mythic",
 ];
 
-export type TargetKind = "chest" | "lucky";
+export type TargetKind = "enemy" | "lucky";
 
 /** Identifier for a themed world / loot zone. */
 export type WorldId = "castaway_cove" | "grasslands";
@@ -28,6 +28,10 @@ export interface TargetState {
   name: string;
   maxHealth: number;
   health: number;
+  /** For enemies: which enemy def is on screen (drives the sprite). */
+  enemyId?: string;
+  /** True when this enemy is a boss (timed DPS check, beefier + richer). */
+  isBoss?: boolean;
 }
 
 /** Per-brainrot ownership progress. */

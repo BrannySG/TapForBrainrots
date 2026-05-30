@@ -2,9 +2,16 @@ import type { Rarity, TargetState } from "../types";
 import { RARITY_ORDER } from "../types";
 import type { GameState } from "../state/GameState";
 import type { Rng } from "../rng/Rng";
-import { Balance, chestHealthForStage, luckyHealthForStage } from "../config/balance";
+import {
+  Balance,
+  bossHealthForStage,
+  enemyHealthForStage,
+  isBossStage,
+  luckyHealthForStage,
+} from "../config/balance";
 import { lootRarityWeights } from "../config/loot";
 import { luckyRewardWeights } from "../config/brainrots";
+import { worldEnemies } from "../config/enemies";
 
 function pickRarity(rng: Rng, weights: Record<Rarity, number>): Rarity {
   return rng.weighted(
@@ -14,7 +21,7 @@ function pickRarity(rng: Rng, weights: Record<Rarity, number>): Rarity {
 }
 
 /**
- * Decides what spawns next (chest vs Lucky Block) and builds the target.
+ * Decides what spawns next (enemy vs Lucky Block) and builds the target.
  * Owns the Lucky Block chance + pity logic; the rolled rarity is what the
  * downstream economy/brainrot systems use, so the on-screen rarity is truthful.
  */
@@ -25,12 +32,19 @@ export class SpawnSystem {
   ) {}
 
   spawnNext(luckyChance: number): { target: TargetState; isLucky: boolean } {
-    // First-time runs should always start with a normal chest; Lucky Blocks are
+    // Boss stages are clean and focused: a single beefy enemy on a timer, never
+    // a Lucky Block. Build it and skip the lucky/pity roll entirely.
+    if (isBossStage(this.state.stage)) {
+      const target = this.buildBoss();
+      this.state.target = target;
+      return { target, isLucky: false };
+    }
+
+    // First-time runs should always start with a normal enemy; Lucky Blocks are
     // introduced only after at least one target has been broken.
     const isFirstSpawn =
-      this.state.totalChestsBroken === 0 && this.state.luckyBlocksBroken === 0;
-    const forcedByPity =
-      this.state.chestsBrokenSinceLucky >= Balance.lucky.pity;
+      this.state.enemiesDefeated === 0 && this.state.luckyBlocksBroken === 0;
+    const forcedByPity = this.state.killsSinceLucky >= Balance.lucky.pity;
     const isLucky = !isFirstSpawn && (forcedByPity || this.rng.next() < luckyChance);
 
     let target: TargetState;
@@ -44,20 +58,41 @@ export class SpawnSystem {
         maxHealth: max,
         health: max,
       };
-      this.state.chestsBrokenSinceLucky = 0;
+      this.state.killsSinceLucky = 0;
     } else {
+      const pool = worldEnemies(this.state.worldId);
+      const enemy = this.rng.pick(pool);
+      // Rarity is cosmetic for enemies (label colour); roll it so the on-screen
+      // tag still varies stage to stage.
       const rarity = pickRarity(this.rng, lootRarityWeights(this.state.stage));
-      const max = chestHealthForStage(this.state.stage);
+      const max = enemyHealthForStage(this.state.stage);
       target = {
-        kind: "chest",
+        kind: "enemy",
         rarity,
-        name: "Chest",
+        name: enemy.name,
         maxHealth: max,
         health: max,
+        enemyId: enemy.id,
       };
     }
 
     this.state.target = target;
     return { target, isLucky };
+  }
+
+  /** Build the boss enemy for the current (boss) stage. */
+  private buildBoss(): TargetState {
+    const pool = worldEnemies(this.state.worldId);
+    const enemy = this.rng.pick(pool);
+    const max = bossHealthForStage(this.state.stage);
+    return {
+      kind: "enemy",
+      rarity: "legendary",
+      name: enemy.name,
+      maxHealth: max,
+      health: max,
+      enemyId: enemy.id,
+      isBoss: true,
+    };
   }
 }

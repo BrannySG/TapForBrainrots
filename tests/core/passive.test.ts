@@ -4,7 +4,7 @@ import { makeCore } from "../helpers";
 describe("passive damage", () => {
   it("does no damage with zero passive DPS", () => {
     const core = makeCore(8);
-    core.debugSpawnChest();
+    core.debugSpawnEnemy();
     expect(core.getStats().passiveDps).toBe(0);
 
     const before = core.getSnapshot().target!.health;
@@ -19,14 +19,14 @@ describe("passive damage", () => {
     for (let i = 0; i < 20; i++) core.buyUpgrade("brainrot_training");
     expect(core.getStats().passiveDps).toBeGreaterThan(0);
 
-    core.debugSpawnChest();
+    core.debugSpawnEnemy();
     const breaksBefore =
-      core.getSnapshot().totalChestsBroken + core.getSnapshot().luckyBlocksBroken;
+      core.getSnapshot().enemiesDefeated + core.getSnapshot().luckyBlocksBroken;
 
     core.debugFastForward(30);
 
     const breaksAfter =
-      core.getSnapshot().totalChestsBroken + core.getSnapshot().luckyBlocksBroken;
+      core.getSnapshot().enemiesDefeated + core.getSnapshot().luckyBlocksBroken;
     expect(breaksAfter).toBeGreaterThan(breaksBefore);
   });
 
@@ -36,7 +36,7 @@ describe("passive damage", () => {
     for (let i = 0; i < 5; i++) core.buyUpgrade("brainrot_training");
     expect(core.getStats().passiveDps).toBe(5);
 
-    core.debugSpawnChest();
+    core.debugSpawnEnemy();
     const start = core.getSnapshot().target!.health;
 
     // Within a single tick interval (< 0.33s) no damage should land yet.

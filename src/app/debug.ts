@@ -14,10 +14,13 @@ export interface DebugApi {
   tap: (times?: number) => void;
   buy: (upgradeId: string) => boolean;
   spawnLucky: () => void;
-  spawnChest: () => void;
+  spawnEnemy: () => void;
+  spawnBoss: () => void;
   kill: () => void;
   advanceRespawn: () => void;
   resolveReveal: () => void;
+  setAutoProgress: (on: boolean) => void;
+  retryBoss: () => boolean;
   addGold: (amount: number) => void;
   fastForward: (seconds: number) => void;
   setFx: (enabled: boolean) => void;
@@ -47,10 +50,13 @@ export function installDebugApi(
     },
     buy: (upgradeId: string) => core.buyUpgrade(upgradeId),
     spawnLucky: () => core.debugSpawnLucky(),
-    spawnChest: () => core.debugSpawnChest(),
+    spawnEnemy: () => core.debugSpawnEnemy(),
+    spawnBoss: () => core.debugSpawnBoss(),
     kill: () => core.debugKillTarget(),
     advanceRespawn: () => core.debugAdvanceRespawn(),
     resolveReveal: () => core.debugResolveReveal(),
+    setAutoProgress: (on: boolean) => core.setAutoProgress(on),
+    retryBoss: () => core.retryBoss(),
     addGold: (amount: number) => core.debugAddGold(amount),
     fastForward: (seconds: number) => core.debugFastForward(seconds),
     setFx: (enabled: boolean) => {

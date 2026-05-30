@@ -106,11 +106,14 @@ The long-term goal is to build a powerful collection of Brainrots, cards, discov
 
 ## 4. Stage Progression
 
-Stages represent forward progression within a world.
+Stages represent forward progression within a world. Progression follows a
+push/farm loop inspired by *Clicker Heroes*: the player does not advance on every
+kill. Instead, each stage is a small challenge, and every 5th stage is a boss
+that tests whether the player is strong enough to keep pushing.
 
 Each stage increases:
 
-* Chest health.
+* Chest/enemy health.
 * Item sell value.
 * Gold rewards.
 * Lucky Block reward potential.
@@ -118,12 +121,35 @@ Each stage increases:
 
 The player should always feel like they are pushing slightly further than before.
 
+### Normal vs Boss Stages
+
+* **Normal stages** require defeating a fixed number of enemies (default 10)
+  before auto-advancing. The UI shows a skull counter (e.g. `3 / 10`).
+* **Boss stages** are every 5th stage (`stage % 5 === 0`). They contain a single
+  much stronger enemy (boss HP ≈ normal HP × 10) on a timer (default 30s) and
+  pay a larger gold reward (≈ normal × 8). Lucky Blocks never spawn on a boss
+  stage.
+* **Boss pass:** defeat the boss before the timer ends to advance.
+* **Boss fail:** if the timer expires, the player is sent back to the previous
+  (farming) stage and auto-progress is turned **off**, so they can farm/upgrade
+  and then tap **Retry Boss** when ready.
+
+### Auto-Progress & Farming
+
+* **Auto-Progress On** (default): clearing a stage automatically advances.
+* **Auto-Progress Off** (farming): the player stays on the current stage to farm
+  gold, Brainrots, and drops. Failing a boss forces this off.
+* A Lucky Block counts as a stage kill on normal stages.
+
 ### Stage Rules
 
 * Each world has its own stage track.
 * Players can continue progressing a world indefinitely.
 * New worlds unlock at key stage milestones.
 * Higher stages increase difficulty and reward quality.
+
+> Tunables (kills-per-stage, boss frequency/timer, boss HP and gold multipliers)
+> live in `src/core/config/balance.ts` under `Balance.stage`.
 
 ### Example Unlocks
 

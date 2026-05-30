@@ -7,10 +7,10 @@ export function makeCore(seed = 1): GameCore {
   return core;
 }
 
-/** Total targets destroyed so far (chests + lucky blocks). */
+/** Total targets destroyed so far (enemies + lucky blocks). */
 export function totalBreaks(core: GameCore): number {
   const s = core.getSnapshot();
-  return s.totalChestsBroken + s.luckyBlocksBroken;
+  return s.enemiesDefeated + s.luckyBlocksBroken;
 }
 
 /**

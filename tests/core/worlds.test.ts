@@ -1,9 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { makeCore, breakCurrentTarget } from "../helpers";
-import { GRASSLANDS_ITEMS } from "../../src/core/config/loot";
 import { WORLDS_BY_ID } from "../../src/core/config/worlds";
 
-const grassIds = new Set(GRASSLANDS_ITEMS.map((i) => i.id));
 const GRASS_UNLOCK = WORLDS_BY_ID.grasslands.unlock!.stage;
 
 describe("worlds", () => {
@@ -45,19 +43,22 @@ describe("worlds", () => {
     expect(core.getSnapshot().stage).toBe(coveStage);
   });
 
-  it("drops Grasslands items while in the Grasslands world", () => {
+  it("keeps awarding kill gold after travelling to Grasslands", () => {
     const core = makeCore(5);
     while (core.getSnapshot().stage < GRASS_UNLOCK) breakCurrentTarget(core);
     core.switchWorld("grasslands");
+    expect(core.getSnapshot().worldId).toBe("grasslands");
 
-    const dropped: string[] = [];
-    core.bus.on("itemDropped", (e) => dropped.push(e.id));
-    for (let i = 0; i < 30; i++) {
-      core.debugSpawnChest();
+    let rewards = 0;
+    core.bus.on("killReward", () => rewards++);
+
+    const goldBefore = core.getSnapshot().gold;
+    for (let i = 0; i < 10; i++) {
+      core.debugSpawnEnemy();
       breakCurrentTarget(core);
     }
 
-    expect(dropped.length).toBeGreaterThan(0);
-    for (const id of dropped) expect(grassIds.has(id)).toBe(true);
+    expect(rewards).toBeGreaterThan(0);
+    expect(core.getSnapshot().gold).toBeGreaterThan(goldBefore);
   });
 });

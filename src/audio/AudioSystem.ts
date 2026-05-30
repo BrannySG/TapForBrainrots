@@ -42,7 +42,7 @@ export class AudioSystem {
     bus.on("targetDamaged", (e) => {
       if (e.isTap) this.playTap();
     });
-    bus.on("itemDropped", () => this.playGold());
+    bus.on("killReward", () => this.playGold());
     bus.on("upgradePurchased", () => this.playBuy());
     bus.on("targetBroken", (e) => this.playBreak(e.kind));
     bus.on("luckyReveal", () => this.playSummon());

@@ -25,11 +25,25 @@ export interface GameEventMap {
     /** Total items dropped in the current break (1-2). */
     count: number;
   };
+  /** Gold awarded for a defeated enemy; FX bursts coins from the enemy. */
+  killReward: { gold: number };
   goldChanged: { gold: number; delta: number };
   gemsChanged: { gems: number; delta: number };
   upgradePurchased: { id: string; level: number; cost: number };
   upgradeFailed: { id: string; reason: "insufficient-gold" | "max-level" };
   stageChanged: { stage: number };
+  /** Kill progress within the current stage objective. */
+  stageProgress: { kills: number; required: number; isBoss: boolean };
+  /** A new stage was entered (drives the "Entering Stage N" banner). */
+  stageEntered: { stage: number; worldName: string; isBoss: boolean };
+  /** Boss DPS-check countdown tick (throttled); `remaining`/`total` in seconds. */
+  bossTick: { remaining: number; total: number };
+  /** Boss defeated before the timer expired. */
+  bossDefeated: { stage: number; gold: number };
+  /** Boss timer expired with the boss still alive. */
+  bossFailed: { stage: number };
+  /** Auto-progress toggled on/off. */
+  autoProgressChanged: { on: boolean };
   /** Player travelled to a different world; `stage` is the new world's stage. */
   worldChanged: { worldId: WorldId; name: string; stage: number };
   /** A new world became available to travel to. */
