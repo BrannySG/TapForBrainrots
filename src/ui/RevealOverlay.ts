@@ -35,8 +35,11 @@ type Phase = "idle" | "cycling" | "revealed";
 export class RevealOverlay {
   private readonly root: HTMLDivElement;
   private readonly glow: HTMLDivElement;
+  private readonly cycleRays: HTMLDivElement;
   private readonly rays: HTMLDivElement;
   private readonly sprite: HTMLImageElement;
+  private readonly sheen: HTMLImageElement;
+  private readonly flash: HTMLDivElement;
   private readonly title: HTMLDivElement;
   private readonly card: HTMLDivElement;
   private readonly cardName: HTMLDivElement;
@@ -52,6 +55,8 @@ export class RevealOverlay {
   private candidates: string[] = [];
   private winnerId = "";
   private winnerLevel = 1;
+  /** Earliest time (ms, performance.now) a tap is allowed to act. */
+  private acceptTapAt = 0;
 
   constructor(
     parent: HTMLElement,
@@ -67,6 +72,11 @@ export class RevealOverlay {
     this.glow = el("div", "reveal-glow");
     this.maskWith(this.glow, FX_SPRITES.radialGlowThick);
 
+    // Ambient rays that slowly rotate behind the character and ramp up in
+    // intensity as the spin builds toward the reveal.
+    this.cycleRays = el("div", "reveal-cyclerays");
+    this.maskWith(this.cycleRays, FX_SPRITES.raysInner);
+
     this.rays = el("div", "reveal-rays");
     this.maskWith(this.rays, FX_SPRITES.raysOuter);
 
@@ -77,7 +87,21 @@ export class RevealOverlay {
     const stage = el("div", "reveal-stage");
     this.sprite = img("", "");
     this.sprite.className = "reveal-sprite";
-    stage.append(this.glow, this.rays, this.sprite, this.burstLayer);
+
+    this.sheen = img(FX_SPRITES.sheen, "");
+    this.sheen.className = "reveal-sheen";
+
+    this.flash = el("div", "reveal-flashpop");
+
+    stage.append(
+      this.cycleRays,
+      this.glow,
+      this.rays,
+      this.sprite,
+      this.sheen,
+      this.burstLayer,
+      this.flash
+    );
 
     this.card = el("div", "reveal-card");
     this.cardName = el("div", "reveal-name");
@@ -138,10 +162,14 @@ export class RevealOverlay {
     this.rays.classList.remove("fire");
     this.burstLayer.innerHTML = "";
     this.sprite.classList.add("silhouette");
+    this.cycleRays.style.opacity = "0";
 
     this.phase = "cycling";
     this.canDismiss = false;
     this.step = 0;
+    // Ignore taps for the first beat so the damage-tap that broke the block
+    // doesn't immediately skip the spin.
+    this.acceptTapAt = performance.now() + 450;
     this.root.classList.add("open");
 
     this.cycle();
@@ -160,10 +188,73 @@ export class RevealOverlay {
     const progress = ticks <= 1 ? 1 : this.step / (ticks - 1);
     this.audio.playTick(progress);
 
+    // Each beat: punch the glow rings, ramp the ambient rays, and throw a few
+    // sparks - all intensifying as the spin slows to build anticipation.
+    this.pulseGlow(0.85 + progress * 0.7);
+    if (this.isFxEnabled()) {
+      this.cycleRays.style.opacity = `${0.1 + progress * 0.55}`;
+      this.cycleSparks(progress);
+      if (progress > 0.45) this.flashPop(0.1 + progress * 0.35);
+    }
+
     // Ease-out: start snappy, slow dramatically toward the reveal.
     const interval = 70 + (520 - 70) * Math.pow(progress, 1.8);
     this.step += 1;
     this.timer = window.setTimeout(() => this.cycle(), interval);
+  }
+
+  /** A quick scale punch on the glow rings so they "beat" with each tick. */
+  private pulseGlow(strength: number): void {
+    const peak = 0.96 + 0.12 * strength;
+    this.glow.animate(
+      [
+        { transform: `translate(-50%, -50%) scale(0.9)` },
+        { transform: `translate(-50%, -50%) scale(${peak})`, offset: 0.4 },
+        { transform: `translate(-50%, -50%) scale(0.98)` },
+      ],
+      { duration: 260, easing: "cubic-bezier(0.2, 0.8, 0.3, 1.2)", fill: "both" }
+    );
+  }
+
+  /** A small spray of sparks per cycle, growing as the spin builds. */
+  private cycleSparks(progress: number): void {
+    const count = 1 + Math.round(progress * 3);
+    for (let i = 0; i < count; i++) {
+      const star = el("div", "reveal-spark");
+      this.maskWith(star, FX_SPRITES.sparkle);
+      this.burstLayer.append(star);
+
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 18 + Math.random() * 20;
+      const dx = Math.cos(angle) * dist;
+      const dy = Math.sin(angle) * dist;
+      const size = 3 + Math.random() * 3;
+      star.style.width = `calc(var(--frame-unit) * ${size})`;
+      star.style.height = `calc(var(--frame-unit) * ${size})`;
+
+      const anim = star.animate(
+        [
+          { transform: "translate(-50%, -50%) scale(0.2)", opacity: 0.9 },
+          {
+            transform: `translate(calc(-50% + ${dx}%), calc(-50% + ${dy}%)) scale(0.4)`,
+            opacity: 0,
+          },
+        ],
+        { duration: 360 + Math.random() * 220, easing: "ease-out", fill: "forwards" }
+      );
+      anim.onfinish = () => star.remove();
+    }
+  }
+
+  /** A brief white flash pop (alpha 0..1) layered over the stage. */
+  private flashPop(alpha: number): void {
+    this.flash.animate(
+      [
+        { opacity: Math.min(1, alpha) },
+        { opacity: 0 },
+      ],
+      { duration: 220, easing: "ease-out", fill: "forwards" }
+    );
   }
 
   private showSilhouette(id: string): void {
@@ -204,8 +295,13 @@ export class RevealOverlay {
       { duration: 520, easing: "cubic-bezier(0.15, 0.9, 0.25, 1.5)", fill: "both" }
     );
 
+    this.cycleRays.style.opacity = "0";
+    this.flashPop(1);
+    this.pulseGlow(1.8);
     this.fireRays();
     this.spawnBurst(rarity);
+    this.smokePuff();
+    this.sheenSweep();
     this.audio.playReveal(rarity);
 
     this.cardRarity.textContent = rarity.toUpperCase();
@@ -214,11 +310,56 @@ export class RevealOverlay {
       : "";
     this.cta.textContent = "Tap to continue";
 
-    window.setTimeout(() => this.card.classList.add("show"), 220);
+    // Hold the CTA back a beat or two so an in-flight damage-tap can't
+    // immediately dismiss the reveal.
+    this.canDismiss = false;
+    this.acceptTapAt = performance.now() + 1600;
+    window.setTimeout(() => this.card.classList.add("show"), 260);
     window.setTimeout(() => {
       this.cta.classList.add("show");
       this.canDismiss = true;
-    }, 700);
+    }, 1600);
+  }
+
+  /** A puff of expanding smoke sprites under the character at the reveal. */
+  private smokePuff(): void {
+    if (!this.isFxEnabled()) return;
+    for (let i = 0; i < 5; i++) {
+      const puff = img(FX_SPRITES.smoke, "");
+      puff.className = "reveal-smoke";
+      this.burstLayer.append(puff);
+
+      const dx = (Math.random() * 2 - 1) * 22;
+      const dy = 6 + Math.random() * 14;
+      const size = 26 + Math.random() * 22;
+      puff.style.width = `calc(var(--frame-unit) * ${size})`;
+      puff.style.height = `calc(var(--frame-unit) * ${size})`;
+
+      const anim = puff.animate(
+        [
+          { transform: "translate(-50%, -50%) scale(0.3)", opacity: 0.55 },
+          {
+            transform: `translate(calc(-50% + ${dx}%), calc(-50% + ${dy}%)) scale(1.1)`,
+            opacity: 0,
+          },
+        ],
+        { duration: 700 + Math.random() * 300, easing: "ease-out", fill: "forwards" }
+      );
+      anim.onfinish = () => puff.remove();
+    }
+  }
+
+  /** A quick light sheen sweeping across the revealed character. */
+  private sheenSweep(): void {
+    if (!this.isFxEnabled()) return;
+    this.sheen.animate(
+      [
+        { transform: "translate(-50%, -50%) translateX(-70%) rotate(18deg)", opacity: 0 },
+        { transform: "translate(-50%, -50%) translateX(0%) rotate(18deg)", opacity: 0.85, offset: 0.5 },
+        { transform: "translate(-50%, -50%) translateX(70%) rotate(18deg)", opacity: 0 },
+      ],
+      { duration: 620, delay: 160, easing: "ease-in-out", fill: "forwards" }
+    );
   }
 
   private fireRays(): void {
@@ -278,6 +419,10 @@ export class RevealOverlay {
   }
 
   private onTap(): void {
+    // Grace window so a damage-tap right before/after a state change doesn't
+    // accidentally skip the spin or dismiss the reveal.
+    if (performance.now() < this.acceptTapAt) return;
+
     if (this.phase === "cycling") {
       // Impatient player: jump straight to the reveal.
       this.cancelTimer();

@@ -545,19 +545,6 @@ body {
   width: calc(var(--frame-unit) * 92);
   height: calc(var(--frame-unit) * 92);
   opacity: 0.85;
-  animation: reveal-glow-pulse 1.6s ease-in-out infinite;
-}
-
-@keyframes reveal-glow-pulse {
-  0%,
-  100% {
-    transform: translate(-50%, -50%) scale(0.92);
-    opacity: 0.7;
-  }
-  50% {
-    transform: translate(-50%, -50%) scale(1.08);
-    opacity: 0.95;
-  }
 }
 
 /* Burst of rays at the final reveal (hidden until fired). */
@@ -620,6 +607,74 @@ body {
   -webkit-mask-size: contain;
   mask-size: contain;
   filter: drop-shadow(0 0 calc(var(--frame-unit) * 1.5) var(--reveal-color));
+}
+
+/* Ambient rays that rotate behind the character during the spin. */
+.reveal-cyclerays {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--frame-unit) * 120);
+  height: calc(var(--frame-unit) * 120);
+  background: var(--reveal-color);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  animation: reveal-cyclerays-spin 8s linear infinite;
+  transition: opacity 0.18s ease;
+}
+
+@keyframes reveal-cyclerays-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* Light sheen that sweeps across the revealed character. */
+.reveal-sheen {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--frame-unit) * 70);
+  height: calc(var(--frame-unit) * 70);
+  object-fit: contain;
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  transform: translate(-50%, -50%);
+}
+
+/* Expanding smoke puffs at the reveal. */
+.reveal-smoke {
+  position: absolute;
+  left: 0;
+  top: 0;
+  object-fit: contain;
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+/* White flash pop layered over the stage. */
+.reveal-flashpop {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--frame-unit) * 120);
+  height: calc(var(--frame-unit) * 120);
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, transparent 62%);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .reveal-card {
