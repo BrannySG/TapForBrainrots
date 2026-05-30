@@ -45,6 +45,104 @@ body {
   box-shadow: 0 0 0 6px #14171f, 0 12px 40px rgba(0, 0, 0, 0.55);
 }
 
+/* ---- Layered world scenery (behind the 3D canvas) ---- */
+/*
+ * Three opaque JPG layers stacked far -> near to give the play field depth.
+ * Feathered into each other with CSS masks (the JPGs themselves are plain
+ * rectangles). A subtle pointer parallax (--bg-px/--bg-py, -1..1) shifts the
+ * near layers more than the far ones; an ambient cloud drift keeps the scene
+ * alive. Click-through and purely cosmetic - the flat gradient shows if hidden.
+ */
+#bg-layers {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  --bg-px: 0;
+  --bg-py: 0;
+}
+
+#bg-layers.show {
+  opacity: 1;
+}
+
+.bg-layer {
+  position: absolute;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  will-change: transform;
+  transition: transform 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+  backface-visibility: hidden;
+}
+
+/* Far: sky + clouds + distant sea. Drifts least; clouds pan slowly. */
+.bg-sky {
+  left: -6%;
+  width: 112%;
+  top: -4%;
+  height: 64%;
+  background-position: center 18%;
+  transform: translate3d(calc(var(--bg-px) * 6px), calc(var(--bg-py) * 4px), 0);
+  animation: bg-cloud-drift 46s ease-in-out infinite alternate;
+}
+
+/* Mid: the cove (cliffs/waterfall/shipwreck framing, open lagoon center). */
+.bg-scene {
+  left: -7%;
+  width: 114%;
+  top: 20%;
+  height: 56%;
+  background-position: center 62%;
+  transform: translate3d(calc(var(--bg-px) * 14px), calc(var(--bg-py) * 9px), 0);
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    #000 16%,
+    #000 100%
+  );
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 16%, #000 100%);
+}
+
+/* Near: foreground sand + corner props. Drifts most for a strong depth cue. */
+.bg-foreground {
+  left: -8%;
+  width: 116%;
+  bottom: -4%;
+  height: 40%;
+  background-position: center top;
+  transform: translate3d(
+    calc(var(--bg-px) * 26px),
+    calc(var(--bg-py) * 15px),
+    0
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    #000 24%,
+    #000 100%
+  );
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 24%, #000 100%);
+}
+
+@keyframes bg-cloud-drift {
+  from {
+    background-position: 46% 18%;
+  }
+  to {
+    background-position: 54% 18%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-layer {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 #game-canvas {
   position: absolute;
   inset: 0;

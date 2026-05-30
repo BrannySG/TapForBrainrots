@@ -14,6 +14,11 @@ Keep entries brief and practical. Review this file before planning or implementi
 <!-- Add newest entries at the top. -->
 
 - Date: 2026-05-30
+- Roadblock: The image generator returns landscape (3:2) frames even when asked for a 9:16 portrait, which doesn't fit the tall game frame and would crop away the edge framing if force-cropped.
+- Solution: Treated the layers as horizontal bands stacked in the portrait frame (far sky band on top, mid cove band, near foreground band) and feathered them with CSS `mask-image` gradients; opaque JPGs are fine since masks/oversize handle blending and parallax has no edge gaps.
+- Prevention: Plan world backgrounds as banded/parallax layers (not one portrait image); prompt for "open/calm center, scenery framed at left/right" so the playable center stays readable, and oversize each layer (~110-116%) so parallax never reveals edges.
+
+- Date: 2026-05-30
 - Roadblock: Chaining validation commands with `&&` failed in this shell ("token '&&' is not a valid statement separator"), which blocked running typecheck then tests in one step.
 - Solution: Used a PowerShell-compatible sequence: run `npm run typecheck`, then gate the test command with `$LASTEXITCODE`.
 - Prevention: On this Windows setup, prefer `; if ($LASTEXITCODE -eq 0) { ... }` for dependent command chains instead of `&&`.

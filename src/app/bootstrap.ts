@@ -1,5 +1,6 @@
 import { GameCore } from "../core/GameCore";
 import { SceneRenderer } from "../render/SceneRenderer";
+import { Background } from "../ui/Background";
 import { Ui } from "../ui/Ui";
 import { RevealOverlay } from "../ui/RevealOverlay";
 import { Layout } from "../ui/Layout";
@@ -25,6 +26,9 @@ export function bootstrap(): void {
 
   const core = new GameCore({ seed: resolveSeed() });
   const renderer = new SceneRenderer(canvas, core.bus);
+
+  // World scenery sits behind the canvas; pure subscriber, swaps art on travel.
+  new Background(frame, core.bus, core.getSnapshot().worldId);
 
   // UI + FX + audio are pure subscribers to the core's event bus.
   new Ui(uiRoot, core, core.bus);
