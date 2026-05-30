@@ -14,6 +14,16 @@ Keep entries brief and practical. Review this file before planning or implementi
 <!-- Add newest entries at the top. -->
 
 - Date: 2026-05-30
+- Roadblock: Over-engineered the cove background (generate 3 layers -> Pillow compositing -> seam/feather tuning) because the image generator only outputs 3:2 landscape and the frame is 9:16; chasing seamless joins wasted effort and the user just supplied a finished 9:16 image.
+- Solution: Dropped all generation/compositing. Copied the provided `Available Assets/Backgrounds/T_BackgroundImage_Cove.jpg` to `src/assets/backgrounds/castaway_cove/castaway_cove.jpg`, kept the simple single-image `Background` (one `#bg-image`, cover, world-aware), and deleted the scratch scripts/intermediate layer JPGs.
+- Prevention: For full-frame world art, prefer a single correctly-sized (9:16) source image over compositing AI tiles. Ask for / check `Available Assets` for a ready portrait background before generating. Also: when the Cursor browser shows a blank/white frame after a dev-server restart, it's a stale GL/compositor state - a cache-busting reload fixes it (the DOM/CDP was fine).
+
+- Date: 2026-05-30
+- Roadblock: A runtime multi-layer background with pointer parallax felt bad on a tap-to-play game (cursor drag moved the world) and the layered look didn't read as intended; we needed a single cohesive image with the beach where the enemy stands.
+- Solution: Baked the three landscape layers into ONE 1080x1920 portrait JPG (`scripts/compose_background.py`): extend sky upward (sky->sky), place the cove so the waterline sits ~60% down, and colour-match + long-fade the foreground sand onto the beach so the joins are seamless. Background is now one static `#bg-image` (cover), no parallax/masks.
+- Prevention: For tap/clicker games, avoid pointer-driven background parallax (it competes with the tap input and feels wrong). When compositing separately-generated AI images, only join within the same tonal family (sky->sky, sand->sand) and colour-match before blending; never vertically stretch a strip that contains props (it smears into streaks).
+
+- Date: 2026-05-30
 - Roadblock: The image generator returns landscape (3:2) frames even when asked for a 9:16 portrait, which doesn't fit the tall game frame and would crop away the edge framing if force-cropped.
 - Solution: Treated the layers as horizontal bands stacked in the portrait frame (far sky band on top, mid cove band, near foreground band) and feathered them with CSS `mask-image` gradients; opaque JPGs are fine since masks/oversize handle blending and parallax has no edge gaps.
 - Prevention: Plan world backgrounds as banded/parallax layers (not one portrait image); prompt for "open/calm center, scenery framed at left/right" so the playable center stays readable, and oversize each layer (~110-116%) so parallax never reveals edges.

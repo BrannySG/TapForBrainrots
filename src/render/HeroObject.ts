@@ -18,10 +18,10 @@ const RARITY_COLOR: Record<Rarity, number> = {
 
 /** On-screen display height (world units) for an enemy sprite plane. */
 const ENEMY_DISPLAY_HEIGHT = 2.6;
-/** Fixed vertical offset (world units) so the enemy sits higher on screen. */
-const ENEMY_RAISE = 0.55;
-/** Fixed vertical offset (world units) so the Lucky Block sits higher too. */
-const LUCKY_RAISE = 0.6;
+/** Vertical offset (world units) so the enemy's base rests on the beach sand. */
+const ENEMY_RAISE = 0.08;
+/** Vertical offset (world units) so the Lucky Block rests on the sand too. */
+const LUCKY_RAISE = 0.15;
 /** How long the spawn frame shows before settling into idle (seconds). */
 const SPAWN_FRAME_HOLD = 0.18;
 /** How long a flinch frame shows before returning to idle (seconds). */
