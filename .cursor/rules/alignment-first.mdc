@@ -1,0 +1,13 @@
+---
+description: Ask alignment questions before planning and implementation
+alwaysApply: true
+---
+
+# Alignment First
+
+- Before planning or implementing, ask concise clarifying questions to align on:
+  - desired outcome,
+  - constraints and non-goals,
+  - validation/definition of done.
+- Do not start implementation until alignment questions are answered, unless the request is explicit and unambiguous.
+- Prefer a short set of high-impact questions over many low-value questions.

@@ -1,0 +1,17 @@
+---
+description: Review GDD and validate feature alignment before development
+alwaysApply: true
+---
+
+# GDD Alignment Check
+
+- Before planning or implementing any new feature/mechanic, read `IMPORTANT_GAME_GDD.md`.
+- Validate the proposed work against:
+  - key game systems,
+  - core design goals,
+  - intended player journey.
+- If the proposal appears misaligned, pause and ask the user to confirm intent before continuing.
+- Use concise alignment questions to confirm:
+  - why this feature is being added,
+  - whether divergence from the GDD is intentional,
+  - whether the GDD should be updated to reflect the new direction.

@@ -1,0 +1,17 @@
+---
+description: Reuse available assets first and enforce copy-only asset handling
+alwaysApply: true
+---
+
+# Assets First (Copy Only)
+
+- When work involves assets, review `Available Assets/` first to find reusable candidates.
+- Evaluate suitability based on the goal and asset type (for example: SFX, 2D icons, 3D meshes, textures, UI art).
+- Prefer reusing existing assets when they are a strong fit for quality, style, and functional requirements.
+- If no suitable asset is available, ask the user whether to:
+  - generate a new asset, or
+  - provide/source one manually.
+- Use judgment to recommend the best option, but confirm with the user before creating new assets.
+- Asset safety rule for `Available Assets/`:
+  - only copy files from this folder,
+  - never move, rename, or delete files in this folder.

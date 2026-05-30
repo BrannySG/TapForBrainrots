@@ -1,0 +1,444 @@
+:root {
+  --bg-outer: #0b0d12;
+  --bg-game: #2f7bf6;
+  --hud-pill: rgba(20, 28, 48, 0.55);
+  --hud-stroke: rgba(255, 255, 255, 0.12);
+  --text: #ffffff;
+  --rarity-common: #c9d4e3;
+  --rarity-rare: #4aa3ff;
+  --rarity-epic: #c44bff;
+  --rarity-legendary: #ffb02e;
+  --rarity-mythic: #ff4d6d;
+  /* Set by the layout code so UI can scale with the frame. */
+  --frame-unit: 1px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-outer);
+  font-family: "Baloo 2", "Nunito", system-ui, -apple-system, sans-serif;
+  touch-action: manipulation;
+}
+
+/* The 9:16 stage. Sized by layout code to fit the viewport (letterboxed). */
+#game-frame {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--bg-game);
+  overflow: hidden;
+  box-shadow: 0 0 0 6px #14171f, 0 12px 40px rgba(0, 0, 0, 0.55);
+}
+
+#game-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#ui-root {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/*
+ * #ui-root is click-through by default so taps reach the 3D canvas below.
+ * Only genuinely interactive regions opt back in (see .bottom-nav, .pill,
+ * .panel-backdrop.open). Full-screen overlays (fx-layer/flash/toast) stay
+ * click-through so they never steal taps.
+ */
+
+/* All UI sizing is in frame units so it scales with the 9:16 stage. */
+.u {
+  --u: var(--frame-unit);
+}
+
+/* ---- Top HUD ---- */
+.hud-top {
+  position: absolute;
+  top: calc(var(--frame-unit) * 2);
+  left: calc(var(--frame-unit) * 2);
+  right: calc(var(--frame-unit) * 2);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--frame-unit) * 1.5);
+  pointer-events: none;
+}
+
+/* Interactive regions opt back into pointer events. */
+.bottom-nav,
+.pill,
+.panel-backdrop.open {
+  pointer-events: auto;
+}
+
+.hud-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--frame-unit) * 1.2);
+  background: var(--hud-pill);
+  border: calc(var(--frame-unit) * 0.4) solid var(--hud-stroke);
+  border-radius: calc(var(--frame-unit) * 3);
+  padding: calc(var(--frame-unit) * 1) calc(var(--frame-unit) * 2.2);
+  color: var(--text);
+  font-weight: 800;
+  font-size: calc(var(--frame-unit) * 5);
+  line-height: 1;
+  text-shadow: 0 calc(var(--frame-unit) * 0.3) 0 rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+}
+
+.pill img {
+  width: calc(var(--frame-unit) * 6);
+  height: calc(var(--frame-unit) * 6);
+  object-fit: contain;
+  filter: drop-shadow(0 calc(var(--frame-unit) * 0.4) 0 rgba(0, 0, 0, 0.35));
+}
+
+.pill.icon-only {
+  padding: calc(var(--frame-unit) * 1.4);
+  border-radius: calc(var(--frame-unit) * 2.4);
+}
+
+.pill .badge {
+  font-size: calc(var(--frame-unit) * 4);
+  opacity: 0.95;
+}
+
+/* ---- Target label ---- */
+.target-label {
+  position: absolute;
+  top: calc(var(--frame-unit) * 18);
+  left: 0;
+  right: 0;
+  text-align: center;
+  pointer-events: none;
+}
+
+.target-rarity {
+  font-size: calc(var(--frame-unit) * 6);
+  font-weight: 900;
+  letter-spacing: calc(var(--frame-unit) * 0.4);
+  text-transform: uppercase;
+  -webkit-text-stroke: calc(var(--frame-unit) * 0.4) rgba(0, 0, 0, 0.5);
+}
+
+.target-name {
+  font-size: calc(var(--frame-unit) * 9);
+  font-weight: 900;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: calc(var(--frame-unit) * 0.3);
+  text-shadow: 0 calc(var(--frame-unit) * 0.6) 0 rgba(0, 0, 0, 0.45);
+}
+
+/* ---- Health bar ---- */
+.health-bar {
+  position: absolute;
+  bottom: calc(var(--frame-unit) * 30);
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(var(--frame-unit) * 60);
+  height: calc(var(--frame-unit) * 8);
+  background: rgba(0, 0, 0, 0.25);
+  border: calc(var(--frame-unit) * 0.6) solid rgba(255, 255, 255, 0.85);
+  border-radius: calc(var(--frame-unit) * 4);
+  overflow: hidden;
+}
+
+.health-fill {
+  position: absolute;
+  inset: calc(var(--frame-unit) * 0.6);
+  width: 100%;
+  border-radius: calc(var(--frame-unit) * 3.4);
+  background: linear-gradient(#ff6b81, #e23b54);
+  transform-origin: left center;
+  transition: transform 0.08s linear;
+}
+
+.health-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 900;
+  font-size: calc(var(--frame-unit) * 4.4);
+  text-shadow: 0 calc(var(--frame-unit) * 0.4) 0 rgba(0, 0, 0, 0.5);
+}
+
+/* ---- Bottom navigation ---- */
+.bottom-nav {
+  position: absolute;
+  bottom: calc(var(--frame-unit) * 2.5);
+  left: calc(var(--frame-unit) * 2);
+  right: calc(var(--frame-unit) * 2);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--frame-unit) * 0.6);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  flex: 1;
+  transition: transform 0.08s ease;
+}
+
+.nav-btn:active {
+  transform: scale(0.9);
+}
+
+.nav-btn img {
+  width: calc(var(--frame-unit) * 11);
+  height: calc(var(--frame-unit) * 11);
+  object-fit: contain;
+  filter: drop-shadow(0 calc(var(--frame-unit) * 0.5) 0 rgba(0, 0, 0, 0.35));
+}
+
+.nav-btn span {
+  font-size: calc(var(--frame-unit) * 3.6);
+  font-weight: 800;
+  letter-spacing: calc(var(--frame-unit) * 0.2);
+  text-shadow: 0 calc(var(--frame-unit) * 0.4) 0 rgba(0, 0, 0, 0.45);
+}
+
+/* ---- Panels (Shop etc.) ---- */
+.panel-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: rgba(6, 12, 28, 0.55);
+  display: flex;
+  align-items: flex-end;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+
+.panel-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.panel {
+  width: 100%;
+  max-height: 72%;
+  background: linear-gradient(#202b46, #18213a);
+  border-top-left-radius: calc(var(--frame-unit) * 6);
+  border-top-right-radius: calc(var(--frame-unit) * 6);
+  border-top: calc(var(--frame-unit) * 0.6) solid rgba(255, 255, 255, 0.12);
+  padding: calc(var(--frame-unit) * 4);
+  transform: translateY(8%);
+  transition: transform 0.18s ease;
+  overflow-y: auto;
+  color: #fff;
+}
+
+.panel-backdrop.open .panel {
+  transform: translateY(0);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: calc(var(--frame-unit) * 3);
+}
+
+.panel-title {
+  font-size: calc(var(--frame-unit) * 7);
+  font-weight: 900;
+}
+
+.panel-close {
+  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  color: #fff;
+  font-size: calc(var(--frame-unit) * 6);
+  font-weight: 900;
+  width: calc(var(--frame-unit) * 9);
+  height: calc(var(--frame-unit) * 9);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.upgrade {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--frame-unit) * 2.5);
+  background: rgba(255, 255, 255, 0.06);
+  border: calc(var(--frame-unit) * 0.4) solid rgba(255, 255, 255, 0.08);
+  border-radius: calc(var(--frame-unit) * 3);
+  padding: calc(var(--frame-unit) * 2.5);
+  margin-bottom: calc(var(--frame-unit) * 2.2);
+}
+
+.upgrade-info {
+  flex: 1;
+}
+
+.upgrade-name {
+  font-size: calc(var(--frame-unit) * 5);
+  font-weight: 800;
+}
+
+.upgrade-desc {
+  font-size: calc(var(--frame-unit) * 3.8);
+  opacity: 0.75;
+}
+
+.upgrade-level {
+  font-size: calc(var(--frame-unit) * 3.4);
+  opacity: 0.6;
+}
+
+.buy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--frame-unit) * 1);
+  background: linear-gradient(#3ad07a, #1fae5c);
+  border: none;
+  border-radius: calc(var(--frame-unit) * 2.4);
+  color: #fff;
+  font-weight: 900;
+  font-size: calc(var(--frame-unit) * 4.4);
+  padding: calc(var(--frame-unit) * 1.8) calc(var(--frame-unit) * 3);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.buy-btn:disabled {
+  filter: grayscale(0.7) brightness(0.7);
+  cursor: default;
+}
+
+.buy-btn img {
+  width: calc(var(--frame-unit) * 4.6);
+  height: calc(var(--frame-unit) * 4.6);
+}
+
+.panel-empty {
+  opacity: 0.6;
+  font-size: calc(var(--frame-unit) * 4.4);
+  text-align: center;
+  padding: calc(var(--frame-unit) * 6) 0;
+}
+
+/* ---- Floating popups (FX) ---- */
+.fx-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.fx-popup {
+  position: absolute;
+  font-weight: 900;
+  font-size: calc(var(--frame-unit) * 6);
+  color: #fff;
+  text-shadow: 0 calc(var(--frame-unit) * 0.5) 0 rgba(0, 0, 0, 0.5);
+  transform: translate(-50%, -50%);
+  animation: fx-float 0.7s ease-out forwards;
+}
+
+.fx-popup.gold {
+  color: #ffd54a;
+}
+
+@keyframes fx-float {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.6);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -70%) scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -160%) scale(1);
+  }
+}
+
+/* ---- Reveal flash overlay ---- */
+.reveal-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.reveal-flash.fire {
+  animation: reveal-flash 0.5s ease-out;
+}
+
+@keyframes reveal-flash {
+  0% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ---- Toast (brainrot reveal result) ---- */
+.toast {
+  position: absolute;
+  top: calc(var(--frame-unit) * 40);
+  left: 50%;
+  transform: translateX(-50%) translateY(calc(var(--frame-unit) * 4));
+  background: var(--hud-pill);
+  border: calc(var(--frame-unit) * 0.5) solid rgba(255, 255, 255, 0.2);
+  border-radius: calc(var(--frame-unit) * 3);
+  padding: calc(var(--frame-unit) * 2.5) calc(var(--frame-unit) * 4);
+  text-align: center;
+  color: #fff;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.toast .toast-title {
+  font-size: calc(var(--frame-unit) * 6);
+  font-weight: 900;
+}
+
+.toast .toast-sub {
+  font-size: calc(var(--frame-unit) * 4);
+  opacity: 0.85;
+}

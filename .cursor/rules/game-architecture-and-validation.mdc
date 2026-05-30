@@ -1,0 +1,43 @@
+---
+description: Architecture boundaries and validation workflow for the Brainrot Idle Clicker game code
+globs: src/**/*.ts,tests/**/*.ts
+alwaysApply: true
+---
+
+# Game Architecture & Validation
+
+## Layer boundaries (keep systems decoupled)
+
+- `src/core/**` is the pure game logic. It MUST NOT import from `three`, touch
+  the DOM/`window`/`document`, or import from `src/render`, `src/ui`, `src/fx`,
+  or `src/app`. Keep it portable and unit-testable.
+- The core communicates outward ONLY by emitting events on `EventBus`
+  (`src/core/events/EventBus.ts`) and exposing a small command API on
+  `GameCore`. Presentation layers subscribe; the core never knows who listens.
+- `src/render` (Three.js), `src/ui` (DOM), and `src/fx` (juice) are pure
+  subscribers/consumers. They may read snapshots and listen to events; they
+  MUST NOT mutate game state directly.
+- Polish (screenshake, squash, popups, flashes) lives in `src/fx` and must be
+  toggleable (`Juice.enabled`). Disabling FX must never change game logic,
+  numbers, or the HUD.
+- All balance/tunables live in `src/core/config/**`. Do not hardcode balance
+  numbers inside systems.
+
+## Determinism
+
+- All randomness goes through the seedable `Rng` (`src/core/rng/Rng.ts`). Never
+  call `Math.random()` in `src/core`. This keeps tests reproducible and saves
+  portable.
+
+## Validation workflow (run after substantive changes)
+
+1. `npm run typecheck` and `npm test` must pass. Add/extend headless tests in
+   `tests/` for new core behavior, using a fixed seed and the debug commands.
+2. For anything visual or interactive, verify in the browser:
+   - start the dev server (`npm run dev`),
+   - open it with the Cursor Browser tool using a fixed seed
+     (e.g. `http://localhost:5173/?seed=42`),
+   - drive the game via the `window.__GAME` debug API (see `src/app/debug.ts`),
+   - take a screenshot to confirm the 9:16 layout and the change.
+3. Prefer expanding the `window.__GAME` debug API over manual clicking so
+   changes can be validated deterministically.

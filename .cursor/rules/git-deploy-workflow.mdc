@@ -1,0 +1,15 @@
+---
+description: Git push and deploy workflow after changes
+alwaysApply: true
+---
+
+# Git Push + Deploy Workflow
+
+- After implementing changes, prepare a git commit and push workflow by default.
+- If repository/remote/deploy setup is missing, ask targeted questions to collect what is needed.
+- Before any push/deploy step:
+  - confirm tests or checks relevant to the change have run,
+  - confirm no secrets are being committed,
+  - summarize what will be pushed.
+- If deployment command is known for this project, run it after a successful push.
+- If deployment command is not known, ask for it once and store it in project docs.

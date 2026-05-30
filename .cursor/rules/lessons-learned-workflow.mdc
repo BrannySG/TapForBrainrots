@@ -1,0 +1,14 @@
+---
+description: Review and maintain concise lessons learned log
+alwaysApply: true
+---
+
+# Lessons Learned Workflow
+
+- Before planning or implementation, read `LESSONS_LEARNED.md`.
+- When a roadblock occurs, add a concise entry with:
+  - the roadblock,
+  - the solution used,
+  - one prevention note.
+- Keep entries brief and actionable (short bullet style).
+- Add newest entries at the top of the entries section.
