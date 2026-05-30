@@ -2,6 +2,13 @@ import { describe, it, expect } from "vitest";
 import { makeCore, breakCurrentTarget } from "../helpers";
 
 describe("lucky blocks & brainrots", () => {
+  it("starts a fresh run with a chest, not a lucky block", () => {
+    // Seed 7 would roll a lucky spawn on the first RNG check without the
+    // first-spawn guard, so this catches regressions deterministically.
+    const core = makeCore(7);
+    expect(core.getSnapshot().target?.kind).toBe("chest");
+  });
+
   it("never exceeds the pity threshold without a lucky block", () => {
     const core = makeCore(17);
     const pity = core.pityThreshold;

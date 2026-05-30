@@ -25,9 +25,13 @@ export class SpawnSystem {
   ) {}
 
   spawnNext(luckyChance: number): { target: TargetState; isLucky: boolean } {
+    // First-time runs should always start with a normal chest; Lucky Blocks are
+    // introduced only after at least one target has been broken.
+    const isFirstSpawn =
+      this.state.totalChestsBroken === 0 && this.state.luckyBlocksBroken === 0;
     const forcedByPity =
       this.state.chestsBrokenSinceLucky >= Balance.lucky.pity;
-    const isLucky = forcedByPity || this.rng.next() < luckyChance;
+    const isLucky = !isFirstSpawn && (forcedByPity || this.rng.next() < luckyChance);
 
     let target: TargetState;
     if (isLucky) {

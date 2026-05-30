@@ -21,6 +21,10 @@ const COINS_BY_RARITY: Record<Rarity, number> = {
   legendary: 7,
   mythic: 9,
 };
+const COIN_LAUNCH_STAGGER_MS = 60;
+const ITEM_POP_TAIL_MS = 120;
+const ITEM_READ_MS = 650;
+const POP_START_RATIO = 0.4;
 
 /**
  * The "juice" layer: screenshake, hit squash, floating numbers, and the loot
@@ -133,11 +137,15 @@ export class Juice {
 
     this.fxLayer.append(item);
 
-    // Items live a touch longer so the read is clear, then collapse into the
-    // coin burst. The collapse and the coins overlap (see popStartMs) so the
-    // item visibly *becomes* gold instead of vanishing into an empty gap.
-    const lingerMs = 1500;
-    const popStartMs = lingerMs * 0.88;
+    // Items live long enough to read clearly, then "pop" while the full coin
+    // launch wave happens so the conversion feels contiguous.
+    const lingerMs = ITEM_READ_MS;
+    const coinCount = COINS_BY_RARITY[rarity];
+    const popStartMs = lingerMs * POP_START_RATIO;
+    const coinSpawnWindowMs = Math.max(0, (coinCount - 1) * COIN_LAUNCH_STAGGER_MS);
+    const totalMs = Math.max(lingerMs, popStartMs + coinSpawnWindowMs + ITEM_POP_TAIL_MS);
+    const holdOffset = popStartMs / totalMs;
+    const popOffset = holdOffset + (1 - holdOffset) * 0.45;
     // Burst outward (overshoot), settle at the fan position, then hold.
     item.animate(
       [
@@ -155,23 +163,28 @@ export class Juice {
         {
           transform: `translate(-50%, -50%) translate(${offX}px, ${offY}px) scale(1) rotate(${tilt}deg)`,
           opacity: 1,
-          offset: 0.88,
+          offset: holdOffset,
         },
         {
-          transform: `translate(-50%, -50%) translate(${offX}px, ${offY}px) scale(0.4) rotate(${tilt}deg)`,
+          transform: `translate(-50%, -50%) translate(${offX}px, ${offY}px) scale(1.18) rotate(${tilt + 8}deg)`,
+          opacity: 1,
+          offset: popOffset,
+        },
+        {
+          transform: `translate(-50%, -50%) translate(${offX}px, ${offY}px) scale(0.26) rotate(${tilt + 16}deg)`,
           opacity: 0,
           offset: 1,
         },
       ],
-      { duration: lingerMs, easing: "cubic-bezier(0.2, 0.9, 0.3, 1.3)", fill: "forwards" }
+      { duration: totalMs, easing: "cubic-bezier(0.2, 0.9, 0.3, 1.3)", fill: "forwards" }
     );
 
-    // Spawn the coins as the item begins to collapse so the conversion reads as
-    // one continuous "item -> gold" motion rather than fade-then-pause-then-coins.
+    // Start coins right as the pop begins; the item remains visible during the
+    // full launch cadence so it reads as "item bursts into coins".
     window.setTimeout(() => {
-      this.burstCoins(originX + offX, originY + offY, COINS_BY_RARITY[rarity]);
+      this.burstCoins(originX + offX, originY + offY, coinCount);
     }, popStartMs);
-    window.setTimeout(() => item.remove(), lingerMs);
+    window.setTimeout(() => item.remove(), totalMs);
   }
 
   /** Spawn `count` coins as a pile at (x,y) that fly to the gold pill one by one. */
@@ -198,7 +211,7 @@ export class Juice {
       const dy = targetY - startY;
       // Upward arc on the way in, with a clear one-by-one launch cadence.
       const arc = layerRect.height * (0.1 + Math.random() * 0.08);
-      const delay = i * 60;
+      const delay = i * COIN_LAUNCH_STAGGER_MS;
       const duration = 480 + Math.random() * 160;
 
       const anim = coin.animate(

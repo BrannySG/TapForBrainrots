@@ -14,6 +14,11 @@ Keep entries brief and practical. Review this file before planning or implementi
 <!-- Add newest entries at the top. -->
 
 - Date: 2026-05-30
+- Roadblock: Chaining validation commands with `&&` failed in this shell ("token '&&' is not a valid statement separator"), which blocked running typecheck then tests in one step.
+- Solution: Used a PowerShell-compatible sequence: run `npm run typecheck`, then gate the test command with `$LASTEXITCODE`.
+- Prevention: On this Windows setup, prefer `; if ($LASTEXITCODE -eq 0) { ... }` for dependent command chains instead of `&&`.
+
+- Date: 2026-05-30
 - Roadblock: Verifying the lucky-block reveal in a backgrounded Cursor browser tab: the rAF-driven `GameLoop` is throttled/paused when the tab isn't focused, so passive damage + respawn never advanced and the next target stayed null after `resolveReveal`.
 - Solution: Drive deterministic state via the `window.__GAME` debug API (`advanceRespawn`) instead of waiting on rAF; setTimeout-based flows (the reveal cycle) still run, but anything in the rAF loop won't.
 - Prevention: For headless/background browser checks, assert state through debug commands, not by waiting on the real-time game loop.
