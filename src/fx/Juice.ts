@@ -23,8 +23,8 @@ const COINS_BY_RARITY: Record<Rarity, number> = {
 };
 const COIN_LAUNCH_STAGGER_MS = 60;
 const ITEM_POP_TAIL_MS = 120;
-const ITEM_READ_MS = 650;
-const POP_START_RATIO = 0.4;
+const ITEM_READ_MS = 1200;
+const POP_START_RATIO = 0.82;
 
 /**
  * The "juice" layer: screenshake, hit squash, floating numbers, and the loot
